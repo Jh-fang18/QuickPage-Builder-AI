@@ -1,0 +1,114 @@
+<template>
+  <a-layout>
+    <a-layout-header>
+      <div class="toolbar">
+        <a-button type="primary" @click="cancel">{{ $t(`${langPrefix}.cancel`) }}</a-button>
+      </div>
+    </a-layout-header>
+    <a-layout-content>
+      <dnd-preview
+        :terminal-type="Number(terminalType)"
+        :activated-components="activatedComponents"
+        :grid-row="gridRow"
+        :grid-column="gridColumn"
+      ></dnd-preview>
+    </a-layout-content>
+  </a-layout>
+</template>
+
+<script>
+const langPrefix = "management";
+
+export default {
+  name: "previews",
+  data() {
+    return {
+      langPrefix,
+      gridColumn: 24, //网格宽度
+      gridRow: 36, //网格长度
+      activatedComponents: [], //激活组件列表
+      terminalType: 0, //终端类型 0 PC, 1 Mob
+    };
+  },
+  computed: {},
+  beforeCreate() {},
+  methods: {
+    cancel() {
+      this.$router.go(-1);
+    },
+  },
+  created() {
+    //获取当前配置
+    const { tempId } = this.$route.query;
+
+    const workbenchData =
+      JSON.parse(window.sessionStorage.getItem("activatedComponents")) || false;
+
+    const _components = workbenchData[tempId].activatedComponents;
+
+    console.log("compoents", _components);
+
+    if (_components.length > 0) {
+      this.activatedComponents = _components;
+
+      if (this.activatedComponents && this.activatedComponents.length > 0) {
+        this.gridRow = this.activatedComponents[
+          this.activatedComponents.length - 1
+        ]["ccs"]
+          .split("/")
+          .map((item) => Number(item))[2];
+      }
+    } else {
+      this.$axios
+        .post("/self/homePageInfo/getTempInfo", { tempId: Number(tempId) })
+        .then((res) => {
+          let { content } = res;
+
+          if (content) this.activatedComponents = JSON.parse(content);
+          else this.activatedComponents = [];
+
+          if (this.activatedComponents && this.activatedComponents.length > 0) {
+            this.gridRow = this.activatedComponents[
+              this.activatedComponents.length - 1
+            ]["ccs"]
+              .split("/")
+              .map((item) => Number(item))[2];
+          }
+        });
+    }
+  },
+  mounted() {},
+  components: {
+    DndPreview: () => import("./Core/Preview"),
+  },
+};
+</script>
+<style lang="less" scoped>
+.ant-layout,
+.ant-layout-header {
+  background: #ffffff;
+}
+.ant-layout-header {
+  text-align: left;
+  padding: 0 20px;
+}
+.ant-layout-content {
+  overflow: auto;
+}
+.toolbar {
+  float: right;
+  .setGridRow {
+    display: inline-block;
+    .ant-input-number {
+      margin-top: -2px;
+      margin-left: 12px;
+    }
+    label {
+      margin-left: 12px;
+    }
+  }
+  .ant-btn {
+    margin-left: 12px;
+  }
+}
+</style>
