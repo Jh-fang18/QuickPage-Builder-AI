@@ -24,3 +24,8 @@ declare module 'vuex' {
     // 导出 Vuex 与 Vue 集成的类型定义
     export * from 'vuex/types/vue.d.ts'
 }
+
+declare module 'mockjs' {
+    const Mock: any;
+    export default Mock;
+}
