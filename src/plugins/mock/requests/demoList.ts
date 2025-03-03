@@ -1,4 +1,11 @@
-const demoList = [
+interface DemoItem {
+    id: number;
+    itemName: string;
+    url: string;
+  }
+  
+
+const demoList: DemoItem[] = [
     {
         id: 1,
         itemName: "Bottomfiling",
@@ -17,7 +24,7 @@ export default {
         return {
             status: 200,
             message: 'success',
-            dataList: demoList
-        };
+            dataList: demoList,
+          };
     }
 }
