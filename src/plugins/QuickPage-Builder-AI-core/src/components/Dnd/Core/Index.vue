@@ -9,7 +9,6 @@
     </template>
     <template v-if="terminalType === 1">
       <div class="tabsWrapper" ref="tabs">
-        <hr-button icon="edit" @click="editTab()"></hr-button>
         <a-tabs type="card" v-model="tabsActiveKey" @change="isSave">
           <a-tab-pane :tab="tab.name" v-for="(tab, i) in tabs" :key="i">
             <div
@@ -76,12 +75,13 @@
       width="415px"
       destroy-on-close
     >
-      <preview-modal />
+      <preview-mobile />
     </a-modal>
   </div>
 </template>
 
 <script>
+import Container from "./Container.vue";
 const langPrefix = "management";
 
 export default {
@@ -233,8 +233,8 @@ export default {
   },
   components: {
     EditNavSenuSettingsModal: () => import("./EditNavSenuSettingsModal.vue"),
-    PreviewModal: () => import("./PreviewModal.vue"),
-    Container: () => import("./Container.vue")
+    PreviewMobile: () => import("./PreviewMobile.vue"),
+    Container,
   }
 };
 </script>

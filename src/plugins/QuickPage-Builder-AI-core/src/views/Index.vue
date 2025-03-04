@@ -25,10 +25,8 @@ const terminalType = ref(0)
 </script>
 
 <template>
-  <div>
-    <edits :micro-parts="microParts" v-if="edit"></edits>
-    <!-- <views :micro-parts="microParts" :dnd-id="dndId" :dnd-id-url="dndIdUrl" v-else></views> -->
-  </div>
+  <edits :micro-parts="microParts" v-if="edit"></edits>
+  <!-- <views :micro-parts="microParts" :dnd-id="dndId" :dnd-id-url="dndIdUrl" v-else></views> -->
 </template>
 
 

@@ -1,44 +1,29 @@
 <template>
-  <div
-    class="container pc"
-    :style="{
-                width: (this.gridScale + this.gridPadding) * this.gridColumn + 'px',
-                gridTemplateColumns: getGridTemplateColumns,
-                gridTemplateRows: getGridTemplateRows,
-                gridTemplateAreas: getGridTemplateAreas,
-            }"
-  >
-    <div
-      v-for="(item, index) of activatedComponents"
-      :key="index"
-      class="block animated"
+  <div class="container pc" :style="{
+    width: (this.gridScale + this.gridPadding) * this.gridColumn + 'px',
+    gridTemplateColumns: getGridTemplateColumns,
+    gridTemplateRows: getGridTemplateRows,
+    gridTemplateAreas: getGridTemplateAreas,
+  }">
+    <div v-for="(item, index) of activatedComponents" :key="index" class="block animated"
       :style="{ top: item.positionY, left: item.positionX, gridArea: item.ccs }"
-      @mousedown="mousedown($event, item, index)"
-      :ref="'block' + index"
-    >
+      @mousedown="mousedown($event, item, index)" :ref="'block' + index">
       <div class="title">
-        <a
-          href="javascript:void(0)"
-          v-if="!item.editTitle"
-          @click="item.editTitle = true"
-        >{{ item.title }}</a>
+        <a href="javascript:void(0)" v-if="!item.editTitle" @click="item.editTitle = true">{{ item.title }}</a>
         <div class="form" v-if="item.editTitle">
           <a-input v-model="item.title" :placeholder="item.title" />
           <a href="javascript:void(0)" @click="item.editTitle = false" size="small">
-            <a-icon type="close-circle" />
+            <close-circle-outlined />
           </a>
           <a href="javascript:void(0)" @click="saveTitle(item)" type="primary" size="small">
-            <a-icon type="check-circle" />
+            <check-circle-outlined />
           </a>
         </div>
       </div>
       <div class="delete">
-        <a
-          href="javascript:void(0)"
-          @click="showConfirm('component', item.treeKey.split('-'), index)"
-        >
+        <a href="javascript:void(0)" @click="showConfirm('component', item.treeKey.split('-'), index)">
           {{
-          $t(`${langPrefix}.delete`)
+            $t(`${langPrefix}.delete`)
           }}
         </a>
       </div>
@@ -53,6 +38,7 @@
 </template>
 
 <script>
+import { CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons-vue';
 const langPrefix = "management";
 
 export default {
@@ -238,8 +224,8 @@ export default {
           let _prevCcs =
             i !== 0
               ? this.activatedComponents[i - 1].ccs
-                  .split("/")
-                  .map((item) => Number(item))
+                .split("/")
+                .map((item) => Number(item))
               : [0, 0, 0, 0];
           //console.log('_ccs', this.activatedComponents[i]);
           //console.log('_prevCcs', this.activatedComponents[i - 1]);
@@ -296,8 +282,8 @@ export default {
         _extraComponents = _extraComponents.filter((item) => {
           if (
             _rowCcs[2] +
-              this.activatedComponents[_fristComponent.rowIndex].height +
-              item.height >
+            this.activatedComponents[_fristComponent.rowIndex].height +
+            item.height >
             this.gridRow + 1
           ) {
             _accident.push(item);
@@ -305,8 +291,8 @@ export default {
 
           return (
             _rowCcs[2] +
-              this.activatedComponents[_fristComponent.rowIndex].height +
-              item.height <=
+            this.activatedComponents[_fristComponent.rowIndex].height +
+            item.height <=
             this.gridRow + 1
           );
         });
@@ -364,7 +350,7 @@ export default {
           //减去一个gridPadding才是组件的大小
           let _rminHeight =
             this.activatedComponents[index].minHeight *
-              (this.gridScale + this.gridPadding) -
+            (this.gridScale + this.gridPadding) -
             this.gridPadding;
           let _cHeight = oBlock.offsetHeight + (oTop - top);
           if (_cHeight >= _rminHeight) {
@@ -384,9 +370,9 @@ export default {
       document.onmouseup = () => {
         //需加上一个gridPadding才是计算高度
         let _height = Math.ceil(
-            (oBlock.offsetHeight + this.gridPadding) /
-              (this.gridScale + this.gridPadding)
-          ),
+          (oBlock.offsetHeight + this.gridPadding) /
+          (this.gridScale + this.gridPadding)
+        ),
           _top = Math.ceil(
             oBlock.offsetTop / (this.gridScale + this.gridPadding)
           );
@@ -414,8 +400,8 @@ export default {
           let _prevCcs =
             i !== 0
               ? this.activatedComponents[i - 1].ccs
-                  .split("/")
-                  .map((item) => Number(item))
+                .split("/")
+                .map((item) => Number(item))
               : [_gridArea[0], _gridArea[1], 1, 1];
           if (_rowCcs[2] < _ccs[2]) _rowCcs = _ccs;
           if (_ccs[0] !== _prevCcs[0]) break;
@@ -472,7 +458,7 @@ export default {
         } else {
           let _rminWidth =
             this.activatedComponents[index].minWidth *
-              (this.gridScale + this.gridPadding) -
+            (this.gridScale + this.gridPadding) -
             this.gridPadding;
           let _cWidth = oBlock.offsetWidth + (left - oLeft);
           oBlock.style.width =
@@ -514,7 +500,7 @@ export default {
           if (
             _componentCcs[0] === _ccs[0] &&
             _componentCcs[3] + this.activatedComponents[i].width + _lastWidth <=
-              this.gridColumn + 1
+            this.gridColumn + 1
           ) {
             _lastComponents.push({
               ...this.activatedComponents[i],
@@ -556,7 +542,7 @@ export default {
         } else {
           let _rminHeight =
             this.activatedComponents[index].minHeight *
-              (this.gridScale + this.gridPadding) -
+            (this.gridScale + this.gridPadding) -
             this.gridPadding;
           let _cHeight = oBlock.offsetHeight + (top - oTop);
           oBlock.style.height =
@@ -615,8 +601,8 @@ export default {
           let _prevCcs =
             i !== 0
               ? this.activatedComponents[i - 1].ccs
-                  .split("/")
-                  .map((item) => Number(item))
+                .split("/")
+                .map((item) => Number(item))
               : [0, 0, 0, 0];
 
           //console.log('_ccs', this.activatedComponents[i]);
@@ -637,7 +623,7 @@ export default {
               _ccs[0] !== _prevCcs[0] &&
               _ccs[3] > _rowCcs[3] &&
               _prevCcs[3] + this.activatedComponents[i].width >
-                this.gridColumn + 1
+              this.gridColumn + 1
             ) {
               //宽度大于拖动元素起始点才算折行项
               console.log(2, this.activatedComponents[i]);
@@ -681,7 +667,7 @@ export default {
           //减去一个gridPadding才是组件的大小
           let _rminWidth =
             this.activatedComponents[index].minWidth *
-              (this.gridScale + this.gridPadding) -
+            (this.gridScale + this.gridPadding) -
             this.gridPadding;
           let _cWidth = oBlock.offsetWidth + (oLeft - left);
           if (_cWidth >= _rminWidth) {
@@ -701,9 +687,9 @@ export default {
       document.onmouseup = () => {
         //需加上一个gridPadding才是计算宽度
         let _width = Math.ceil(
-            (oBlock.offsetWidth + this.gridPadding) /
-              (this.gridScale + this.gridPadding)
-          ),
+          (oBlock.offsetWidth + this.gridPadding) /
+          (this.gridScale + this.gridPadding)
+        ),
           _left = Math.ceil(
             oBlock.offsetLeft / (this.gridScale + this.gridPadding)
           );
@@ -721,8 +707,8 @@ export default {
         let _prevCcs =
           index - 1 >= 0
             ? this.activatedComponents[index - 1].ccs
-                .split("/")
-                .map((item) => Number(item))
+              .split("/")
+              .map((item) => Number(item))
             : [_gridArea[0], _gridArea[1], 1, 1];
 
         //判断是否换行
@@ -766,7 +752,7 @@ export default {
           if (
             _componentCcs[0] === _ccs[0] &&
             _componentCcs[3] + this.activatedComponents[i].width + _lastWidth <=
-              this.gridColumn + 1
+            this.gridColumn + 1
           ) {
             _lastComponents.push({
               ...this.activatedComponents[i],
@@ -871,8 +857,8 @@ export default {
         this.terminalType === "1"
           ? this.$refs.tabs
           : e.path
-          ? e.path[1]
-          : oDiv.parentElement;
+            ? e.path[1]
+            : oDiv.parentElement;
       let disX = e.clientX - 0;
       let disY = e.clientY - 0;
       oDiv.style.borderColor = " red";
@@ -916,12 +902,12 @@ export default {
           e.clientX -
           gDiv.offsetLeft +
           (this.gridColumn + 1 - _componentCcs[3]) *
-            (this.gridScale + this.gridPadding);
+          (this.gridScale + this.gridPadding);
         this.downMax =
           e.clientY -
           gDiv.offsetTop +
           (this.gridRow + 1 - _componentCcs[2]) *
-            (this.gridScale + this.gridPadding);
+          (this.gridScale + this.gridPadding);
         //console.log('downMax', this.rightMax);
         this.leftMax =
           e.clientX -
@@ -996,11 +982,11 @@ export default {
               let _ccs = item.ccs.split("/").map((item) => Number(item));
               if (
                 Math.abs(_ccs[2] - _componentCcs[0]) /
-                  Math.min(...[item.height, _component.height]) >=
-                  0.7 &&
+                Math.min(...[item.height, _component.height]) >=
+                0.7 &&
                 Math.abs(_ccs[3] - _componentCcs[1]) /
-                  Math.min(...[item.width, _component.width]) >=
-                  0.7
+                Math.min(...[item.width, _component.width]) >=
+                0.7
               )
                 _focusComponent = { ...item, rowIndex: i };
             }
@@ -1068,8 +1054,8 @@ export default {
               ) {
                 if (
                   _componentCcs[3] +
-                    this.activatedComponents[i].width +
-                    _lastWidth <=
+                  this.activatedComponents[i].width +
+                  _lastWidth <=
                   this.gridColumn + 1
                 )
                   _lastComponents.push({
@@ -1152,10 +1138,14 @@ export default {
       this.$store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
     },
   },
+  components: {
+    CloseCircleOutlined,
+    CheckCircleOutlined
+  }
 };
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .container {
   position: relative;
   display: grid;
@@ -1163,6 +1153,7 @@ export default {
   /*grid-template-areas: none;*/
   margin: 0 auto 40px auto;
 }
+
 .container.mobile {
   width: 383px;
   grid-row-gap: 8px;
@@ -1179,6 +1170,7 @@ export default {
   background-size: 38.3px 38.3px;
   background-position: -8px -8px;
 }
+
 .container.pc {
   grid-row-gap: 20px;
   grid-column-gap: 20px;
@@ -1194,6 +1186,7 @@ export default {
   background-size: 50px 50px;
   background-position: -20px -20px;
 }
+
 .block {
   position: absolute;
   width: 100%;
@@ -1207,6 +1200,7 @@ export default {
   background: #fff;
   border: 1px dashed #979797;
   background: rgba(255, 255, 255, 0.4);
+
   .title {
     position: absolute;
     top: 10px;
@@ -1214,16 +1208,19 @@ export default {
     padding: 0 20px;
     width: 100%;
     color: #4285f4;
+
     .form a {
       padding-right: 5px;
     }
   }
+
   .delete {
     position: absolute;
     display: none;
     bottom: 10px;
     right: 20px;
   }
+
   .morph {
     span {
       display: block;
@@ -1234,6 +1231,7 @@ export default {
       overflow: hidden;
       cursor: pointer;
     }
+
     span:before {
       display: block;
       content: "";
@@ -1242,21 +1240,25 @@ export default {
       background-color: #979797;
       margin: 13px auto;
     }
+
     span.up {
       top: -16px;
       left: 50%;
       margin-left: -15px;
     }
+
     span.right {
       top: 50%;
       right: -16px;
       margin-top: -16px;
     }
+
     span.down {
       bottom: -16px;
       left: 50%;
       margin-left: -15px;
     }
+
     span.left {
       top: 50%;
       left: -15px;
@@ -1264,6 +1266,7 @@ export default {
     }
   }
 }
+
 .block:hover .delete {
   display: block;
 }

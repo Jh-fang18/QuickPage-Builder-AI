@@ -1,31 +1,18 @@
 <template>
   <a-layout>
     <a-layout-sider v-model="collapsed" :trigger="null" collapsible>
-      <a-tree
-        checkable
-        :default-expand-all="true"
-        :expanded-keys.sync="expandedKeys"
-        :auto-expand-parent="autoExpandParent"
-        :tree-data="treeData"
-        v-model="checkedKeys"
-        @expand="onExpand"
-        @check="onCheck"
-        @select="onSelect"
-      />
+      <a-tree checkable :default-expand-all="true" :expanded-keys.sync="expandedKeys"
+        :auto-expand-parent="autoExpandParent" :tree-data="treeData" v-model="checkedKeys" @expand="onExpand"
+        @check="onCheck" @select="onSelect" />
     </a-layout-sider>
     <a-layout>
       <a-layout-header>
-        <a-icon
-          class="trigger"
-          :type="collapsed ? 'menu-unfold' : 'menu-fold'"
-          @click="() => (collapsed = !collapsed)"
-        />
         <div class="toolbar" v-if="!isPreviewModel">
           <div class="setGridRow">
             <label for="page-height">高度</label>
             <a-input-number v-model="gridRow" id="page-height" />
             <label for="page-width">宽度</label>
-            <a-input-number v-model="gridColumn" id="page-width"/>
+            <a-input-number v-model="gridColumn" id="page-width" />
           </div>
           <a-button v-if="terminalType === 0" @click="preview">{{
             $t(`${langPrefix}.preview`)
@@ -44,42 +31,26 @@
       </a-layout-header>
 
       <a-layout-content>
-        <dnd-core
-          :terminal-type="Number(terminalType)"
-          :activated-components="activatedComponents"
-          :grid-row="gridRow"
-          :grid-column="gridColumn"
-          v-if="!isPreviewModel"
-        ></dnd-core>
+        <dnd-core :terminal-type="Number(terminalType)" :activated-components="activatedComponents" :grid-row="gridRow"
+          :grid-column="gridColumn" v-if="!isPreviewModel"></dnd-core>
 
-        <dnd-preview
-          :terminal-type="Number(terminalType)"
-          :activated-components="activatedComponents"
-          :grid-row="gridRow"
-          :grid-column="gridColumn"
-          :micro-parts="microParts"
-          v-if="isPreviewModel"
-        ></dnd-preview>
+        <dnd-preview :terminal-type="Number(terminalType)" :activated-components="activatedComponents"
+          :grid-row="gridRow" :grid-column="gridColumn" :micro-parts="microParts" v-if="isPreviewModel"></dnd-preview>
       </a-layout-content>
     </a-layout>
-
-    <!-- 移动端 预览 -->
-    <a-modal
-      :mask-closable="false"
-      :title="$t(`${langPrefix}.previewMobile`)"
-      :footer="null"
-      v-model="editPreviewMobileModalVisible"
-      width="415px"
-      destroy-on-close
-    >
-      <preview-modal />
-    </a-modal>
   </a-layout>
+
+  <!-- 移动端 预览 -->
+  <a-modal :mask-closable="false" :title="$t(`${langPrefix}.previewMobile`)" :footer="null"
+    v-model="editPreviewMobileModalVisible" width="415px" destroy-on-close>
+    <preview-mobile />
+  </a-modal>
 </template>
 
 <script>
 //导入已有组件
 import * as MicroCards from "../MicroParts";
+import DndCore from "./Core/Index.vue";
 
 const langPrefix = "management";
 
@@ -147,9 +118,9 @@ export default {
             "/self/homePageInfo/saveTempInfo",
             _navigationId
               ? {
-                  ..._obj,
-                  navigationId: _navigationId,
-                }
+                ..._obj,
+                navigationId: _navigationId,
+              }
               : _obj
           )
           .then((res) => {
@@ -255,7 +226,7 @@ export default {
           //console.log(_ccs);
           if (
             _ccs[3] + this.components[_keys[1]][_index].width <=
-              this.gridColumn + 1 &&
+            this.gridColumn + 1 &&
             height <= this.gridRow + 1
           ) {
             _component.ccs =
@@ -268,9 +239,9 @@ export default {
               (_ccs[3] + this.components[_keys[1]][_index].width);
           } else if (
             _ccs[3] + this.components[_keys[1]][_index].width >
-              this.gridColumn + 1 &&
+            this.gridColumn + 1 &&
             _ccs[2] + this.components[_keys[1]][_index].height <=
-              this.gridRow + 1
+            this.gridRow + 1
           ) {
             _component.ccs =
               _ccs[2] +
@@ -366,7 +337,7 @@ export default {
       this.$store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
     },
   },
-  created() {},
+  created() { },
   mounted() {
     //根据窗口宽度获取当前gridColumn的值
     // if( document.body.clientWidth)
@@ -525,17 +496,22 @@ export default {
     this.$store.commit("dnd/DELETE_CHECKEDKEYS", []);
   },
   components: {
-    DndCore: () => import("./Core/Index.vue"),
+    DndCore,
     DndPreview: () => import("./Preview.vue"),
+    PreviewMobile: () => import("./Core/PreviewMobile.vue"),
   },
 };
 </script>
 <style scoped>
 .ant-layout,
-.ant-layout-sider,
-.ant-layout-header {
+.ant-layout-sider {
   background: #ffffff;
 }
+
+.ant-layout {
+  width: 100%;
+}
+
 .ant-layout-header {
   text-align: left;
   padding: 0 20px;
@@ -543,31 +519,38 @@ export default {
   top: 0;
   right: 0;
   z-index: 9999;
-  width: 1200px;
+  background-color: transparent;
 }
+
 .ant-layout-content {
-  overflow: auto;
   margin-top: 64px;
 }
+
 .ant-tree {
   position: fixed;
   top: 75px;
+
   li {
     overflow: hidden;
   }
 }
+
 .toolbar {
   float: right;
+
   .setGridRow {
     display: inline-block;
+
     .ant-input-number {
       margin-top: -2px;
       margin-left: 12px;
     }
+
     label {
       margin-left: 12px;
     }
   }
+
   .ant-btn {
     margin-left: 12px;
   }

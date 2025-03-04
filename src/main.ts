@@ -5,7 +5,6 @@ import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 
 // 本地资源
-import './style.css'
 import App from './App.vue'
 import './plugins/mock/index.ts'
 import http from './plugins/axios/index.ts'
