@@ -63,8 +63,7 @@ let getTempInfo: TempInfo[] = [
 ];
 
 export default {
-    'post|/self/homePageInfo/getTempInfo': (req: any) => {
-        console.log(req)
+    'post|/self/homePageInfo/getTempInfo': () => {
         return {
             status: 200,
             message: 'success',

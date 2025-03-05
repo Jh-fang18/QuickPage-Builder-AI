@@ -19,8 +19,7 @@ const demoList: DemoItem[] = [
 ]
 
 export default {
-    'post|/self/item/getSelfServiceItemList': (req: any) => {
-        console.log(req)
+    'post|/self/item/getSelfServiceItemList': () => {
         return {
             status: 200,
             message: 'success',

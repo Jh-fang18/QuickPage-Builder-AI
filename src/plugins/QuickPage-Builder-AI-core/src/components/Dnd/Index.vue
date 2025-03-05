@@ -1,9 +1,9 @@
 <template>
   <a-layout>
     <a-layout-sider v-model="collapsed" :trigger="null" collapsible>
-      <a-tree checkable :default-expand-all="true" :expanded-keys.sync="expandedKeys"
-        :auto-expand-parent="autoExpandParent" :tree-data="treeData" v-model="checkedKeys" @expand="onExpand"
-        @check="onCheck" @select="onSelect" />
+      <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
+        :auto-expand-parent="autoExpandParent" :tree-data="treeData" v-model:checkedKeys="checkedKeys"
+        @expand="onExpand" @check="onCheck" @select="onSelect" />
     </a-layout-sider>
     <a-layout>
       <a-layout-header>
@@ -49,7 +49,7 @@
 
 <script>
 //导入已有组件
-import * as MicroCards from "../MicroParts";
+import * as MicroCards from "../MicroParts/index.ts";
 import DndCore from "./Core/Index.vue";
 
 const langPrefix = "management";
@@ -350,21 +350,16 @@ export default {
     this.terminalType = Number(terminalType) || 0;
 
     Promise.all([
-      this.getSelfServiceItemList(0, this.terminalType),
-      this.getSelfServiceItemList(1, this.terminalType),
+      this.getSelfServiceItemList(0, this.terminalType), //其他类
+      this.getSelfServiceItemList(1, this.terminalType), //容器类
     ])
       .then((res) => {
         if (!res) return;
 
         (res || []).map((item, index) => {
           let { dataList } = item;
-
+          //console.log(dataList);
           this.components[index] = (dataList || []).map((item) => {
-            console.log({
-              title: item.itemName,
-              key: String(item.id),
-              url: item.url,
-            });
             return {
               title: item.itemName,
               key: String(item.id),
@@ -377,6 +372,7 @@ export default {
           //console.log(2,this.microParts);
 
           const _MicroCards = { ...MicroCards, ...this.microParts };
+
           //为元素赋值宽度长度, 并过滤没有对应组件的元素
           if (this.terminalType === 0)
             this.components[index] = this.components[index].filter(
@@ -409,7 +405,6 @@ export default {
         });
 
         this.onExpand(this.expandedKeys);
-        //console.log(this.components);
 
         //设置树列表
         this.treeData = [
@@ -428,10 +423,7 @@ export default {
         ];
 
         if (this.terminalType === 0) {
-          let workbenchData =
-            JSON.parse(window.sessionStorage.getItem("activatedComponents")) ||
-            false;
-
+          let workbenchData = JSON.parse(window.sessionStorage.getItem("activatedComponents")) || [];
           if (workbenchData[this.tempId]) {
             let {
               contentId,
@@ -512,6 +504,15 @@ export default {
   width: 100%;
 }
 
+.ant-layout-sider {
+  overflow: auto;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  z-index: 9999;
+  padding: 10px;
+}
+
 .ant-layout-header {
   text-align: left;
   padding: 0 20px;
@@ -523,16 +524,7 @@ export default {
 }
 
 .ant-layout-content {
-  margin-top: 64px;
-}
-
-.ant-tree {
-  position: fixed;
-  top: 75px;
-
-  li {
-    overflow: hidden;
-  }
+  margin-top: 25px;
 }
 
 .toolbar {
