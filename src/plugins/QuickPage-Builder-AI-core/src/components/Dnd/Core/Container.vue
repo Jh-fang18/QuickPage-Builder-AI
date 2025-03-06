@@ -1,6 +1,6 @@
 <template>
   <div class="container pc" :style="{
-    width: (this.gridScale + this.gridPadding) * this.gridColumn + 'px',
+    width: (this.gridScale + this.gridPadding) * this.gridColumn - 20 + 'px',
     gridTemplateColumns: getGridTemplateColumns,
     gridTemplateRows: getGridTemplateRows,
     gridTemplateAreas: getGridTemplateAreas,
@@ -1151,7 +1151,7 @@ export default {
   display: grid;
   background-color: #f3f3f3;
   /*grid-template-areas: none;*/
-  margin: 0 auto 40px auto;
+  margin: 0 auto;
 }
 
 .container.mobile {

@@ -1,6 +1,8 @@
 <template>
   <a-layout>
     <a-layout-sider v-model="collapsed" :trigger="null" collapsible>
+      <menu-unfold-outlined v-if="collapsed" class="trigger" @click="() => (collapsed = !collapsed)" />
+      <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
       <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
         :auto-expand-parent="autoExpandParent" :tree-data="treeData" v-model:checkedKeys="checkedKeys"
         @expand="onExpand" @check="onCheck" @select="onSelect" />
@@ -51,6 +53,10 @@
 //导入已有组件
 import * as MicroCards from "../MicroParts/index.ts";
 import DndCore from "./Core/Index.vue";
+import {
+  MenuUnfoldOutlined,
+  MenuFoldOutlined,
+} from '@ant-design/icons-vue';
 
 const langPrefix = "management";
 
@@ -489,6 +495,8 @@ export default {
   },
   components: {
     DndCore,
+    MenuUnfoldOutlined,
+    MenuFoldOutlined,
     DndPreview: () => import("./Preview.vue"),
     PreviewMobile: () => import("./Core/PreviewMobile.vue"),
   },
@@ -507,9 +515,6 @@ export default {
 .ant-layout-sider {
   overflow: auto;
   height: 100vh;
-  position: fixed;
-  left: 0;
-  z-index: 9999;
   padding: 10px;
 }
 
@@ -517,7 +522,7 @@ export default {
   text-align: left;
   padding: 0 20px;
   position: fixed;
-  top: 0;
+  bottom: 0;
   right: 0;
   z-index: 9999;
   background-color: transparent;
