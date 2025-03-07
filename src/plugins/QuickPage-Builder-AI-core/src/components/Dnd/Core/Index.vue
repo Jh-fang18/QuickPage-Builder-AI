@@ -242,6 +242,5 @@ export default {
 <style scoped>
 .wrapper {
   margin: 0 auto;
-  padding-bottom: 40px;
 }
 </style>
