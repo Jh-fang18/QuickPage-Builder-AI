@@ -233,7 +233,7 @@ export default {
   },
   components: {
     EditNavSenuSettingsModal: () => import("./EditNavSenuSettingsModal.vue"),
-    PreviewMobile: () => import("./PreviewMobile.vue"),
+    PreviewMobile: () => import("../PreviewMobile.vue"),
     Container,
   }
 };

@@ -1,44 +1,42 @@
 <template>
   <a-layout>
-    <a-layout-sider v-model="collapsed" :trigger="null" collapsible>
-      <menu-unfold-outlined v-if="collapsed" class="trigger" @click="() => (collapsed = !collapsed)" />
-      <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
-      <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
-        :auto-expand-parent="autoExpandParent" :tree-data="state.treeData" v-model:checkedKeys="checkedKeys"
-        @expand="onExpand" @check="onCheck" @select="onSelect" />
-    </a-layout-sider>
-    <a-layout>
-      <a-layout-header>
-        <div class="toolbar" v-if="!isPreviewModel">
-          <div class="setGridRow">
-            <label for="page-height">高度</label>
-            <a-input-number v-model="gridRow" id="page-height" />
-            <label for="page-width">宽度</label>
-            <a-input-number v-model="gridColumn" id="page-width" />
-          </div>
-          <a-button v-if="terminalType === 0" @click="preview">{{
-            $t(`${langPrefix}.preview`)
-          }}</a-button>
-          <!-- <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> -->
-          <a-button type="primary" @click="save">{{
-            $t(`${langPrefix}.save`)
-          }}</a-button>
+    <a-layout-header>
+      <div class="toolbar" v-if="!isPreviewModel">
+        <div class="setGridRow">
+          <label for="page-height">高度</label>
+          <a-input-number v-model="gridRow" id="page-height" />
+          <label for="page-width">宽度</label>
+          <a-input-number v-model="gridColumn" id="page-width" />
         </div>
-        <div class="toolbar" v-else>
-          <a-button type="primary" v-if="terminalType === 0" @click="preview">{{
-            $t(`${langPrefix}.preview`)
-          }}</a-button>
-          <a-button @click="cancel">{{ $t(`${langPrefix}.cancel`) }}</a-button>
-        </div>
-      </a-layout-header>
-
+        <a-button v-if="terminalType === 0" @click="preview">{{
+          $t(`${langPrefix}.preview`)
+        }}</a-button>
+        <!-- <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> -->
+        <a-button type="primary" @click="save">{{
+          $t(`${langPrefix}.save`)
+        }}</a-button>
+      </div>
+      <div class="toolbar" v-else>
+        <a-button type="primary" v-if="terminalType === 0" @click="preview">{{
+          $t(`${langPrefix}.preview`)
+        }}</a-button>
+        <a-button @click="cancel">{{ $t(`${langPrefix}.cancel`) }}</a-button>
+      </div>
+    </a-layout-header>
+    <a-layout :style="{ width: layoutWidth ? layoutWidth + 'px' : null, margin: layoutWidth ? '0 auto' : null }">
+      <a-layout-sider v-model="collapsed" :trigger="null" collapsible :class="layoutWidth ? 'fixedToLeft' : null">
+        <menu-unfold-outlined v-if="collapsed" class="trigger" @click="() => (collapsed = !collapsed)" />
+        <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
+        <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
+          :auto-expand-parent="autoExpandParent" :tree-data="state.treeData" v-model:checkedKeys="checkedKeys"
+          @expand="onExpand" @check="onCheck" @select="onSelect" />
+      </a-layout-sider>
       <a-layout-content>
         <dnd-core :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
           :grid-row="gridRow" :grid-column="gridColumn" v-if="!isPreviewModel"></dnd-core>
 
         <dnd-preview :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
-          :grid-row="gridRow" :grid-column="gridColumn" :micro-parts="microParts"
-          v-if="isPreviewModel"></dnd-preview>
+          :grid-row="gridRow" :grid-column="gridColumn" :micro-parts="microParts" v-if="isPreviewModel"></dnd-preview>
       </a-layout-content>
     </a-layout>
   </a-layout>
@@ -56,6 +54,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, de
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons-vue'
+import { useWindowSize } from '@vueuse/core'
 import * as MicroCards from "../MicroParts/index.ts"
 
 //导入自定义组件
@@ -93,13 +92,15 @@ const gridPadding = ref(20)
 const oldContent = ref("[]")
 const tabsActiveKey = ref(0)
 
-
 const state = reactive({
   treeData: [],
   components: [],
   activatedComponents: [],
   tabs: [],
 })
+
+// 使用 useWindowSize 获取窗口宽度
+const { width: windowWidth } = useWindowSize()
 
 // 计算属性
 const MicroCardsList = computed(() => {
@@ -115,7 +116,11 @@ const ContainersList = computed(() => {
     key: `0-1-${index}_${item.key}`
   }))
 })
-
+// 动态计算布局宽度
+const layoutWidth = computed(() => {
+  const baseWidth = (gridScale.value + gridPadding.value) * gridColumn.value - 20
+  return windowWidth.value < 1580 ? 0 : baseWidth
+})
 const checkedKeys = computed({
   get: () => store.state.dnd.checkedKeys,
   set: (val) => store.commit("dnd/PUSH_CHECKEDKEYS", val)
@@ -256,7 +261,7 @@ const onCheck = (checkedKeys, info) => {
       //console.log(_ccs);
       if (
         _ccs[3] + state.components[_keys[1]][_index].width <=
-        gridColumn.value+ 1 &&
+        gridColumn.value + 1 &&
         height <= gridRow.value + 1
       ) {
         _component.ccs =
@@ -269,7 +274,7 @@ const onCheck = (checkedKeys, info) => {
           (_ccs[3] + state.components[_keys[1]][_index].width);
       } else if (
         _ccs[3] + state.components[_keys[1]][_index].width >
-        gridColumn.value+ 1 &&
+        gridColumn.value + 1 &&
         _ccs[2] + state.components[_keys[1]][_index].height <=
         gridRow.value + 1
       ) {
@@ -506,7 +511,7 @@ onMounted(() => {
                 });
             }
 
-            gridColumn.value= 10;
+            gridColumn.value = 10;
             state.gridScale = 30.3;
             state.gridPadding = 8;
           });
@@ -538,12 +543,16 @@ onUnmounted(() => {
 }
 
 .ant-layout-sider {
+  position: sticky;
+  top:0;
+  z-index: 1000;
   overflow: auto;
   height: 100vh;
-  padding: 10px;
+}
+
+.ant-layout-sider.fixedToLeft {
   position: fixed !important;
-  left: 0;
-  z-index: 1000;
+  margin-left: -200px;
 }
 
 .ant-layout-header {
