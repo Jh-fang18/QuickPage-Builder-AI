@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "prepare": "husky && husky install"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
