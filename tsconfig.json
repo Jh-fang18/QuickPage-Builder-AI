@@ -8,4 +8,14 @@
       "path": "./tsconfig.node.json"
     }
   ],
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["src/*"],
+      "@img/*": ["src/assets/img/*"],
+      "@libs/*": ["src/libs/*"],
+      "@plugins/*": ["src/plugins/*"],
+      "@cp/*": ["src/components/*"],
+      "@views/*": ["src/views/*"]
+    },
+  },
 }

@@ -1,6 +1,43 @@
 <template>
   <a-layout>
-    <a-layout-header>
+    <a-layout :style="{ width: layoutWidth ? layoutWidth + 'px' : null, margin: layoutWidth ? '0 auto' : null }">
+      <a-layout-sider :class="layoutWidth ? 'fixedToLeft' : null">
+        <div class="title">
+          <span>微件列表</span>
+        </div>
+        <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
+          :auto-expand-parent="autoExpandParent" :tree-data="state.treeData" v-model:checkedKeys="checkedKeys"
+          @expand="onExpand" @check="onCheck" @select="onSelect" />
+      </a-layout-sider>
+      <a-layout-content>
+        <dnd-core :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
+          :grid-row="gridRow" :grid-column="gridColumn" v-if="!isPreviewModel"></dnd-core>
+
+        <dnd-preview :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
+          :grid-row="gridRow" :grid-column="gridColumn" :micro-parts="microParts" v-if="isPreviewModel"></dnd-preview>
+      </a-layout-content>
+    </a-layout>
+
+    <a-layout-footer>
+      <a-form :model="formState" name="horizontal_login" layout="inline" autocomplete="off" @finish="onFinish"
+        @finishFailed="onFinishFailed">
+        <a-form-item label="Username" name="username"
+          :rules="[{ required: true, message: 'Please input your username!' }]">
+          <a-input v-model:value="formState.username">
+          </a-input>
+        </a-form-item>
+
+        <a-form-item label="Password" name="password"
+          :rules="[{ required: true, message: 'Please input your password!' }]">
+          <a-input-password v-model:value="formState.password">
+          </a-input-password>
+        </a-form-item>
+
+        <a-form-item>
+          <a-button :disabled="disabled" type="primary" html-type="submit">Log in</a-button>
+        </a-form-item>
+      </a-form>
+
       <div class="toolbar" v-if="!isPreviewModel">
         <div class="setGridRow">
           <label for="page-height">高度</label>
@@ -22,23 +59,7 @@
         }}</a-button>
         <a-button @click="cancel">{{ $t(`${langPrefix}.cancel`) }}</a-button>
       </div>
-    </a-layout-header>
-    <a-layout :style="{ width: layoutWidth ? layoutWidth + 'px' : null, margin: layoutWidth ? '0 auto' : null }">
-      <a-layout-sider v-model="collapsed" :trigger="null" collapsible :class="layoutWidth ? 'fixedToLeft' : null">
-        <menu-unfold-outlined v-if="collapsed" class="trigger" @click="() => (collapsed = !collapsed)" />
-        <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
-        <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
-          :auto-expand-parent="autoExpandParent" :tree-data="state.treeData" v-model:checkedKeys="checkedKeys"
-          @expand="onExpand" @check="onCheck" @select="onSelect" />
-      </a-layout-sider>
-      <a-layout-content>
-        <dnd-core :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
-          :grid-row="gridRow" :grid-column="gridColumn" v-if="!isPreviewModel"></dnd-core>
-
-        <dnd-preview :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
-          :grid-row="gridRow" :grid-column="gridColumn" :micro-parts="microParts" v-if="isPreviewModel"></dnd-preview>
-      </a-layout-content>
-    </a-layout>
+    </a-layout-footer>
   </a-layout>
 
   <!-- 移动端 预览 -->
@@ -48,13 +69,13 @@
   </a-modal>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 //导入已有组件
 import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
-import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons-vue'
 import { useWindowSize } from '@vueuse/core'
+import type { AxiosInstance } from 'axios'
 import * as MicroCards from "../MicroParts/index.ts"
 
 //导入自定义组件
@@ -62,11 +83,24 @@ import DndCore from "./Core/Index.vue"
 const DndPreview = defineAsyncComponent(() => import("./Preview.vue"))
 const DndPreviewMobile = defineAsyncComponent(() => import("./PreviewMobile.vue"))
 
+// 为 proxy 添加类型声明
+interface CustomProxy {
+  $t: any;
+  $axios: AxiosInstance;
+  $message: {
+    success: (msg: string) => void;
+    error: (msg: string) => void;
+    warning: (msg: string) => void;
+  };
+  $confirm: (options: { title: string; content: string; onOk: () => void; onCancel: () => void }) => void;
+}
+
 //数据
 const langPrefix = "management"
 const store = useStore()
 const route = useRoute()
-const { proxy } = getCurrentInstance() // 获取当前实例
+const instance = getCurrentInstance();
+const proxy = instance ? (instance.proxy as unknown as CustomProxy) : null; // 获取当前实例的代理对象
 
 //属性
 defineProps({
@@ -81,7 +115,6 @@ const terminalType = ref(0)
 const isPreviewModel = ref(false)
 const editPreviewMobileModalVisible = ref(false)
 const editNavSenuSettingsModalVisible = ref(false)
-const collapsed = ref(true)
 const expandedKeys = ref(["0-0", "0-1"])
 const autoExpandParent = ref(true)
 
@@ -102,6 +135,25 @@ const state = reactive({
 // 使用 useWindowSize 获取窗口宽度
 const { width: windowWidth } = useWindowSize()
 
+interface FormState {
+  username: string;
+  password: string;
+}
+const formState = reactive<FormState>({
+  username: '',
+  password: '',
+});
+const onFinish = (values: any) => {
+  console.log('Success:', values);
+};
+
+const onFinishFailed = (errorInfo: any) => {
+  console.log('Failed:', errorInfo);
+};
+const disabled = computed(() => {
+  return !(formState.username && formState.password);
+});
+
 // 计算属性
 const MicroCardsList = computed(() => {
   return (state.components[0] || []).map((item, index) => ({
@@ -119,7 +171,7 @@ const ContainersList = computed(() => {
 // 动态计算布局宽度
 const layoutWidth = computed(() => {
   const baseWidth = (gridScale.value + gridPadding.value) * gridColumn.value - 20
-  return windowWidth.value < 1580 ? 0 : baseWidth
+  return windowWidth.value < 1580 ? null : baseWidth
 })
 const checkedKeys = computed({
   get: () => store.state.dnd.checkedKeys,
@@ -132,99 +184,123 @@ const save = async () => {
 
   if (tempId.value) {
     let _content = JSON.stringify(state.activatedComponents);
-    oldContent = _content || "[]";
+    oldContent.value = _content || "[]";
     let _navigationId = Number(navigationId.value || 0);
     let _obj = {
       id: contentId.value || 0,
       tempId: tempId.value,
       content: _content,
     };
-    return await proxy.$axios
-      .post(
-        "/self/homePageInfo/saveTempInfo",
-        _navigationId
-          ? {
-            ..._obj,
-            navigationId: _navigationId,
-          }
-          : _obj
-      )
-      .then((res) => {
-        proxy.$message.success(proxy.$t(`${state.langPrefix}.addMessage`));
-        let { id } = res;
-        if (id) contentId.value = id;
-      });
+    if (proxy) {
+      return await proxy.$axios
+        .post(
+          "/self/homePageInfo/saveTempInfo",
+          _navigationId
+            ? {
+              ..._obj,
+              navigationId: _navigationId,
+            }
+            : _obj
+        )
+        .then((res) => {
+          proxy.$message.success(proxy.$t(`${langPrefix}.addMessage`));
+          let { id } = res.data;
+          if (id) contentId.value = id;
+        });
+    } else {
+      console.error('Proxy is null');
+    }
   }
 }
 
 /** start 获取页面输数据相关 **/
-const getTempInfo = (data) => {
-  proxy.$axios.post("/self/homePageInfo/getTempInfo", data).then((res) => {
-    let { content, id } = res;
+const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
+  if (proxy) {
+    proxy.$axios.post("/self/homePageInfo/getTempInfo", data).then((res) => {
+      let { content, id } = res;
 
-    if (content) state.activatedComponents = JSON.parse(content);
-    else state.activatedComponents = [];
+      if (content) state.activatedComponents = JSON.parse(content);
+      else state.activatedComponents = [];
 
-    //保留原始content用于判断是否有过修改
-    state.oldContent = content || "[]";
+      //保留原始content用于判断是否有过修改
+      state.oldContent = content || "[]";
 
-    //设置画布高度
-    if (state.activatedComponents && state.activatedComponents.length > 0) {
-      let _gridRow = state.activatedComponents[
-        state.activatedComponents.length - 1
-      ]["ccs"]
-        .split("/")
-        .map((item) => Number(item))[2];
-      gridRow.value = _gridRow < 36 ? 36 : _gridRow;
-    }
+      //设置画布高度
+      if (state.activatedComponents && state.activatedComponents.length > 0) {
+        let _gridRow = state.activatedComponents[
+          state.activatedComponents.length - 1
+        ]["ccs"]
+          .split("/")
+          .map((item) => Number(item))[2];
+        gridRow.value = _gridRow < 36 ? 36 : _gridRow;
+      }
 
-    if (id) contentId.value = id;
-    else contentId.value = 0;
+      if (id) contentId.value = id;
+      else contentId.value = 0;
 
-    //console.log(state.activatedComponents);
-    //console.log(MicroCardsList);
+      //console.log(state.activatedComponents);
+      //console.log(MicroCardsList);
 
-    //临时记录选中模块 in store
-    store.commit("dnd/PUSH_CHECKEDKEYS", [
-      ...(MicroCardsList.value || []).filter((item) =>
-        (state.activatedComponents || []).find(
-          (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
-        )
-      ).map((item) => item.key),
-      ...(ContainersList.value || []).filter((item) =>
-        (state.activatedComponents || []).find(
-          (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
-        )
-      ).map((item) => item.key),
-    ]);
-  }).catch((err) => {
-    console.error('获取页面数据失败:', err)
-    proxy.$message.error('数据加载失败') // 新增错误提示
-  });
+      //临时记录选中模块 in store
+      store.commit("dnd/PUSH_CHECKEDKEYS", [
+        ...(MicroCardsList.value || []).filter((item) =>
+          (state.activatedComponents || []).find(
+            (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
+          )
+        ).map((item) => item.key),
+        ...(ContainersList.value || []).filter((item) =>
+          (state.activatedComponents || []).find(
+            (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
+          )
+        ).map((item) => item.key),
+      ]);
+    }).catch((err) => {
+      console.error('获取页面数据失败:', err)
+      proxy.$message.error('数据加载失败') // 新增错误提示
+    });
+  } else {
+    console.error('Proxy is null');
+    return null;
+  }
 }
 
-const getSelfServiceItemList = async (itemType, terminalType) => {
-  return await proxy.$axios.post("/self/item/getSelfServiceItemList", {
-    data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
-    page: { pageSize: 6600, currentPage: 1 }, //分页条件
-  });
+const getSelfServiceItemList = async (itemType: number, terminalType: number) => {
+  if (proxy) {
+    return await proxy.$axios.post("/self/item/getSelfServiceItemList", {
+      data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
+      page: { pageSize: 6600, currentPage: 1 }, //分页条件
+    });
+  } else {
+    console.error('Proxy is null');
+    return null;
+  }
 }
 
-const updateSelfServiceItem = async (itemData) => {
-  return await proxy.$axios.post(
-    "/self/item/updateSelfServiceItem",
-    itemData
-  );
+const updateSelfServiceItem = async (itemData: any) => {
+  if (proxy) {
+    return await proxy.$axios.post(
+      "/self/item/updateSelfServiceItem",
+      itemData
+    );
+  } else {
+    console.error('Proxy is null');
+    return null;
+  }
 }
 
 const getNavigationList = async () => {
-  return await proxy.$axios.post("/self/homePageInfo/getNavigationList", {
-    tempId: tempId.value,
-  });
+  if (proxy) {
+    return await proxy.$axios.post("/self/homePageInfo/getNavigationList", {
+      tempId: tempId.value,
+    });
+  } else {
+    console.error('Proxy is null');
+    return null;
+  }
 }
 /** end **/
 
-const onExpand = (expandedKeys) => {
+const onExpand = (expandedKeys: string[]) => {
   console.log("onExpand", expandedKeys);
   // if not set autoExpandParent to false, if children expanded, parent can not collapse.
   // or, you can remove all expanded children keys.
@@ -544,10 +620,31 @@ onUnmounted(() => {
 
 .ant-layout-sider {
   position: sticky;
-  top:0;
-  z-index: 1000;
+  top: 0;
   overflow: auto;
   height: 100vh;
+  padding: 10px;
+
+  .title {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 24px;
+    margin-bottom: 10px;
+
+    span {
+      margin-right: 5px;
+    }
+  }
+
+  .trigger {
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+
+  .trigger:hover {
+    color: #1890ff;
+  }
 }
 
 .ant-layout-sider.fixedToLeft {
@@ -555,25 +652,20 @@ onUnmounted(() => {
   margin-left: -200px;
 }
 
-.ant-layout-header {
-  text-align: left;
-  padding: 0 20px;
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  z-index: 1000;
-  background-color: transparent;
-}
-
 .ant-layout-content {
   margin-top: 25px;
 }
 
+.ant-layout-footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  padding: 0 20px;
+}
+
 .toolbar {
-  float: right;
 
   .setGridRow {
-    display: inline-block;
 
     .ant-input-number {
       margin-top: -2px;

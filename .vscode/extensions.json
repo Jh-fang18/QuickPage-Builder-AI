@@ -1,3 +1,7 @@
 {
-  "recommendations": ["Vue.volar"]
+  "recommendations": [
+    "Vue.volar", // Vue 3 和 TypeScript 扩展
+    "dbaeumer.vscode-eslint", // ESLint 扩展
+    "esbenp.prettier-vscode", // Prettier 扩展
+  ]
 }
