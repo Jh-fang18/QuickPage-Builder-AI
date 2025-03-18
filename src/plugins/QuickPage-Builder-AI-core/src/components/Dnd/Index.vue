@@ -125,9 +125,15 @@ const gridPadding = ref(20)
 const oldContent = ref("[]")
 const tabsActiveKey = ref(0)
 
+interface ComponentItem {
+  title: string;
+  key: string;
+  url?: string;
+}
+
 const state = reactive({
   treeData: [],
-  components: [],
+  components: [] as ComponentItem[][],
   activatedComponents: [],
   tabs: [],
 })
@@ -308,7 +314,7 @@ const onExpand = (expandedKeys: string[]) => {
   autoExpandParent.value = false;
 }
 
-const onCheck = (checkedKeys, info) => {
+const onCheck = (checkedKeys: any, info: { node: { eventKey: string } }) => {
   console.log("checkedKeys", checkedKeys);
   console.log("info", info);
   //临时记录选中模块 in store
