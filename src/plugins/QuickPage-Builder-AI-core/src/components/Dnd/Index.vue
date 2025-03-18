@@ -47,16 +47,16 @@
         </div>
         <a-button v-if="terminalType === 0" @click="preview">{{
           $t(`${langPrefix}.preview`)
-        }}</a-button>
+          }}</a-button>
         <!-- <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> -->
         <a-button type="primary" @click="save">{{
           $t(`${langPrefix}.save`)
-        }}</a-button>
+          }}</a-button>
       </div>
       <div class="toolbar" v-else>
         <a-button type="primary" v-if="terminalType === 0" @click="preview">{{
           $t(`${langPrefix}.preview`)
-        }}</a-button>
+          }}</a-button>
         <a-button @click="cancel">{{ $t(`${langPrefix}.cancel`) }}</a-button>
       </div>
     </a-layout-footer>
