@@ -22,7 +22,7 @@ export default {
     return {
       status: 200,
       message: 'success',
-      dataList: demoList
+      data: { dataList: demoList }
     }
   }
 }

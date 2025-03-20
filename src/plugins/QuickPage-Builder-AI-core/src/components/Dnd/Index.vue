@@ -75,13 +75,14 @@ import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, de
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
-import type { AxiosInstance } from 'axios'
 import * as MicroCards from "../MicroParts/index.ts"
 
 //导入自定义组件
 import DndCore from "./Core/Index.vue"
 const DndPreview = defineAsyncComponent(() => import("./Preview.vue"))
 const DndPreviewMobile = defineAsyncComponent(() => import("./PreviewMobile.vue"))
+
+import type { AxiosInstance } from 'axios'
 
 // 为 proxy 添加类型声明
 interface CustomProxy {
@@ -103,7 +104,7 @@ const instance = getCurrentInstance();
 const proxy = instance ? (instance.proxy as unknown as CustomProxy) : null; // 获取当前实例的代理对象
 
 //属性
-defineProps({
+const { microParts } = defineProps({
   microParts: Object
 });
 
@@ -147,20 +148,32 @@ interface SelfServiceData {
   url: string
 }
 
-const state = reactive({
-  treeData: [],
-  components: [] as ComponentItem[][],
-  activatedComponents: [] as ComponentItem[],
-  tabs: [],
-})
+interface TabItem {
+  id: number;
+  title: string;
+}
 
-// 使用 useWindowSize 获取窗口宽度
-const { width: windowWidth } = useWindowSize()
+interface DemoItem {
+  id: number
+  itemName: string
+  url: string
+}
 
 interface FormState {
   username: string;
   password: string;
 }
+
+const state = reactive({
+  treeData: [],
+  components: [] as ComponentItem[][],
+  activatedComponents: [] as ComponentItem[],
+  tabs: [] as TabItem[],
+})
+
+// 使用 useWindowSize 获取窗口宽度
+const { width: windowWidth } = useWindowSize()
+
 const formState = reactive<FormState>({
   username: '',
   password: '',
@@ -239,7 +252,7 @@ const save = async () => {
 const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
   if (proxy) {
     proxy.$axios.post("/self/homePageInfo/getTempInfo", data).then((res) => {
-      let { content, id } = res.data;
+      let { content, id } = res?.data || {};
 
       if (content) state.activatedComponents = JSON.parse(content);
       else state.activatedComponents = [];
@@ -405,7 +418,7 @@ const onCheck = (onCheckedKeys: string[], info: { node: { eventKey: string } }) 
   //console.log(state.activatedComponents);
 }
 
-const onSelect = (selectedKeys, info) => {
+const onSelect = <T>(selectedKeys: string[], info: T) => {
   console.log(selectedKeys, info);
 }
 
@@ -413,12 +426,12 @@ const preview = () => {
   let _workbenchData = {
     contentId: contentId.value,
     activatedComponents: state.activatedComponents,
-    oldContent: state.oldContent,
-    checkedKeys: state.checkedKeys,
+    oldContent: oldContent.value,
+    checkedKeys: checkedKeys.value,
   };
 
   let workbenchData =
-    JSON.parse(window.sessionStorage.getItem("activatedComponents")) || {};
+    JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {};
 
   if (tempId.value) {
     workbenchData[tempId.value] = _workbenchData;
@@ -439,11 +452,11 @@ const cancel = () => {
 const updateList = () => {
   editNavSenuSettingsModalVisible.value = false;
   getNavigationList().then((res) => {
-    state.tabs = res || [];
-    state.tabsActiveKey = 0;
+    state.tabs = (res && Array.isArray(res.data) ? res.data : []) || [];
+    tabsActiveKey.value = 0;
     navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
 
-    state.getTempInfo({
+    getTempInfo({
       tempId: Number(tempId.value),
       navigationId: Number(navigationId.value),
     });
@@ -497,13 +510,25 @@ onMounted(() => {
         if (!res) return;
 
         (res || []).map((item, index) => {
-          let { dataList } = item;
+          let dataList: DemoItem[] = item?.data?.dataList || [];
           //console.log(dataList);
+
+          //
           state.components[index] = (dataList || []).map((item) => {
             return {
               title: item.itemName,
               key: String(item.id),
               url: item.url,
+              minWidth: 0,
+              minHeight: 0,
+              width: 0,
+              height: 0,
+              editTitle: false,
+              positionX: 0,
+              positionY: 0,
+              selfServiceData: {} as SelfServiceData,
+              treeKey: '',
+              ccs: '',
             };
           });
 
@@ -511,27 +536,32 @@ onMounted(() => {
           //console.log(1,MicroCards);
           //console.log(2,state.microParts);
 
-          const _MicroCards = { ...MicroCards, ...state.microParts };
+          const _MicroCards: Record<string, any> = { ...MicroCards, ...microParts };
 
-          //为元素赋值宽度长度, 并过滤没有对应组件的元素
-          if (terminalType.value === 0)
+          if (terminalType.value === 0) {
+            //为元素赋值宽度长度, 并过滤没有对应组件的元素
+            const updateComponentItem = <T>(item: ComponentItem, microCardData: T, selfServiceData: SelfServiceData) => {
+              const { minRowSpan, minColSpan } = (microCardData as { data: () => { minRowSpan: number; minColSpan: number } }).data();
+              item.minWidth = minRowSpan;
+              item.minHeight = minColSpan;
+              item.width = minRowSpan;
+              item.height = minColSpan;
+              item.editTitle = false;
+              item.positionX = 0;
+              item.positionY = 0;
+              item.selfServiceData = selfServiceData;
+            };
+
             state.components[index] = state.components[index].filter(
               (item, index) => {
-                if (_MicroCards[item.url]) {
-                  let { minRowSpan, minColSpan } = _MicroCards[item.url].data();
-                  item.minWidth = minRowSpan;
-                  item.minHeight = minColSpan;
-                  item.width = minRowSpan;
-                  item.height = minColSpan;
-                  item.editTitle = false;
-                  item.positionX = 0;
-                  item.positionY = 0;
-                  item.selfServiceData = dataList[index];
+                const microCard = item.url && _MicroCards[item.url];
+                if (microCard) {
+                  updateComponentItem(item, microCard, dataList[index]);
                 }
-
-                return _MicroCards[item.url];
+                return !!microCard;
               }
             );
+          }
           else if (terminalType.value === 1)
             state.components[index] = state.components[index].map((item) => {
               item.minWidth = 10;

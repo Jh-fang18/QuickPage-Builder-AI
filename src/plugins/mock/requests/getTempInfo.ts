@@ -66,7 +66,7 @@ export default {
     return {
       status: 200,
       message: 'success',
-      dataList: getTempInfo
+      data: { dataList: getTempInfo }
     }
   }
 }
