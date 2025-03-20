@@ -1,38 +1,35 @@
-import { PUSH_CHECKEDKEYS, DELETE_CHECKEDKEYS } from './mutation-types.ts'
+import { PUSH_CHECKEDKEYS } from './mutation-types.ts'
 
 // 声明自己的 store state
 interface State {
-    checkedKeys: number[],
+  checkedKeys: string[]
 }
 
 const state = () => ({
-    checkedKeys: [],
+  checkedKeys: []
 })
 
 // getters
-const getters = {
-}
+const getters = {}
 
 // actions
-const actions = {
-}
+const actions = {}
 
 // mutations
 const mutations = {
-    [PUSH_CHECKEDKEYS](state: State, arr: string | any[]) {
-        for (let i = 0; i < arr.length; i++) {
-            let ele = arr[i];
-            if (state.checkedKeys.indexOf(ele) == -1) {
-                state.checkedKeys.push(arr[i]);
-            }
-        }
+  [PUSH_CHECKEDKEYS](state: State, arr: string[]) {
+    for (let i = 0; i < arr.length; i++) {
+      if (state.checkedKeys.indexOf(arr[i]) == -1) {
+        state.checkedKeys.push(arr[i])
+      }
     }
+  }
 }
 
 export default {
-    namespaced: true,
-    state,
-    getters,
-    actions,
-    mutations
+  namespaced: true,
+  state,
+  getters,
+  actions,
+  mutations
 }

@@ -126,15 +126,31 @@ const oldContent = ref("[]")
 const tabsActiveKey = ref(0)
 
 interface ComponentItem {
-  title: string;
-  key: string;
-  url?: string;
+  title: string
+  key: string
+  url?: string
+  minWidth: number
+  minHeight: number
+  width: number
+  height: number
+  editTitle: boolean
+  positionX: number
+  positionY: number
+  selfServiceData: SelfServiceData
+  treeKey: string
+  ccs: string
+}
+
+interface SelfServiceData {
+  id: number
+  itemName: string
+  url: string
 }
 
 const state = reactive({
   treeData: [],
   components: [] as ComponentItem[][],
-  activatedComponents: [],
+  activatedComponents: [] as ComponentItem[],
   tabs: [],
 })
 
@@ -223,13 +239,13 @@ const save = async () => {
 const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
   if (proxy) {
     proxy.$axios.post("/self/homePageInfo/getTempInfo", data).then((res) => {
-      let { content, id } = res;
+      let { content, id } = res.data;
 
       if (content) state.activatedComponents = JSON.parse(content);
       else state.activatedComponents = [];
 
       //保留原始content用于判断是否有过修改
-      state.oldContent = content || "[]";
+      oldContent.value = content || "[]";
 
       //设置画布高度
       if (state.activatedComponents && state.activatedComponents.length > 0) {
@@ -306,23 +322,24 @@ const getNavigationList = async () => {
 }
 /** end **/
 
-const onExpand = (expandedKeys: string[]) => {
-  console.log("onExpand", expandedKeys);
+const onExpand = (onExpandedKeys: string[]) => {
+  console.log("onExpand", onExpandedKeys);
   // if not set autoExpandParent to false, if children expanded, parent can not collapse.
   // or, you can remove all expanded children keys.
-  expandedKeys.value = expandedKeys;
+  expandedKeys.value = onExpandedKeys;
   autoExpandParent.value = false;
 }
 
-const onCheck = (checkedKeys: any, info: { node: { eventKey: string } }) => {
-  console.log("checkedKeys", checkedKeys);
+const onCheck = (onCheckedKeys: string[], info: { node: { eventKey: string } }) => {
+  console.log("checkedKeys", onCheckedKeys);
   console.log("info", info);
   //临时记录选中模块 in store
-  store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
+  store.commit("dnd/PUSH_CHECKEDKEYS", onCheckedKeys);
 
   let _keys = info.node.eventKey.split("-");
+  let _classId = Number(_keys[1]);
   let _arr = _keys[2].split("_");
-  let _index = _arr[0];
+  let _index = Number(_arr[0]);
   let _key = _arr[1];
   if (!_key) return;
   //console.log(_keys);
@@ -332,17 +349,17 @@ const onCheck = (checkedKeys: any, info: { node: { eventKey: string } }) => {
     showConfirm("list", _keys);
   } else {
     let _component = {
-      ...state.components[_keys[1]][_index],
+      ...state.components[_classId][_index],
       treeKey: info.node.eventKey,
     };
     if (state.activatedComponents && state.activatedComponents.length > 0) {
       let { height, ccs } = state.activatedComponents[
         state.activatedComponents.length - 1
       ];
-      let _ccs = ccs.split("/").map((item) => Number(item));
+      let _ccs = ccs.split("/").map(Number);
       //console.log(_ccs);
       if (
-        _ccs[3] + state.components[_keys[1]][_index].width <=
+        _ccs[3] + state.components[_classId][_index].width <=
         gridColumn.value + 1 &&
         height <= gridRow.value + 1
       ) {
@@ -351,25 +368,25 @@ const onCheck = (checkedKeys: any, info: { node: { eventKey: string } }) => {
           "/" +
           _ccs[3] +
           "/" +
-          (_ccs[0] + state.components[_keys[1]][_index].height) +
+          (_ccs[0] + state.components[_classId][_index].height) +
           "/" +
-          (_ccs[3] + state.components[_keys[1]][_index].width);
+          (_ccs[3] + state.components[_classId][_index].width);
       } else if (
-        _ccs[3] + state.components[_keys[1]][_index].width >
+        _ccs[3] + state.components[_classId][_index].width >
         gridColumn.value + 1 &&
-        _ccs[2] + state.components[_keys[1]][_index].height <=
+        _ccs[2] + state.components[_classId][_index].height <=
         gridRow.value + 1
       ) {
         _component.ccs =
           _ccs[2] +
           "/1" +
           "/" +
-          (_ccs[2] + state.components[_keys[1]][_index].height) +
+          (_ccs[2] + state.components[_classId][_index].height) +
           "/" +
-          (state.components[_keys[1]][_index].width + 1);
+          (state.components[_classId][_index].width + 1);
       } else {
-        proxy.$message.warning("已没有位置可以插入新组件！");
-        this.checkedKeys = this.checkedKeys.filter(
+        proxy?.$message.warning("已没有位置可以插入新组件！");
+        checkedKeys.value = onCheckedKeys.filter(
           (item) => item !== info.node.eventKey
         );
         return;
@@ -377,9 +394,9 @@ const onCheck = (checkedKeys: any, info: { node: { eventKey: string } }) => {
     } else
       _component.ccs =
         "1/1/" +
-        (Number(state.components[_keys[1]][_index].height) + 1) +
+        (Number(state.components[_classId][_index].height) + 1) +
         "/" +
-        (Number(state.components[_keys[1]][_index].width) + 1);
+        (Number(state.components[_classId][_index].width) + 1);
 
     //console.log(_component);
     state.activatedComponents.push(_component);
@@ -433,25 +450,29 @@ const updateList = () => {
   });
 }
 
-const showConfirm = (type, keys, actIndex) => {
-  proxy.$confirm({
-    title: "提示",
-    content: "是否确认删除此组件？",
-    onOk: () => {
-      state.removeComponent(type, keys, actIndex);
-    },
-    onCancel: () => {
-      store.commit("dnd/PUSH_CHECKEDKEYS", [keys.join("-")]);
-    },
-  });
+const showConfirm = (type: string, keys: string[], actIndex: number = 0) => {
+  if (proxy) {
+    proxy.$confirm({
+      title: "提示",
+      content: "是否确认删除此组件？",
+      onOk: () => {
+        removeComponent(type, keys, actIndex);
+      },
+      onCancel: () => {
+        store.commit("dnd/PUSH_CHECKEDKEYS", [keys.join("-")]);
+      },
+    });
+  } else {
+    console.error('Proxy is null');
+  }
 }
 
-const removeComponent = (type, keys, actIndex) => {
+const removeComponent = (type: string, keys: string[], actIndex: number = 0) => {
   //console.log(actIndex);
   let _arr = keys[2].split("_");
   if (type === "list") {
     state.activatedComponents = state.activatedComponents.filter(
-      (item) => item.key != _arr[1]
+      item => item.key !== _arr[1]
     );
   } else if (type === "component") {
     state.activatedComponents.splice(actIndex, 1);
@@ -464,7 +485,7 @@ const removeComponent = (type, keys, actIndex) => {
 onMounted(() => {
   try {
     const { tempIdQuery, terminalTypeQuery } = route.query
-    tempId.value = Number(tempIdQuery) || "tmp"
+    tempId.value = String(tempIdQuery) || "tmp"
     terminalType.value = Number(terminalTypeQuery) || 0
 
     //获取组件列表
