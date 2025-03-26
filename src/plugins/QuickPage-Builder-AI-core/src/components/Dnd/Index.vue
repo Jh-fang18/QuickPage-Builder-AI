@@ -18,22 +18,24 @@
       </a-layout>
 
       <a-layout-footer>
-        <a-form :model="formState" name="horizontal_login" layout="inline" autocomplete="off" @finish="onFinish"
+        <a-form :model="formState" name="horizontal_login" layout="inline" autocomplete="off" @finish="save"
           @finishFailed="onFinishFailed">
-          <a-form-item label="Username" name="username"
+          <a-form-item label="高度" name="page-height"
             :rules="[{ required: true, message: 'Please input your username!' }]">
-            <a-input v-model:value="formState.username">
-            </a-input>
+            <a-input-number v-model:value="formState.username">
+            </a-input-number>
           </a-form-item>
 
-          <a-form-item label="Password" name="password"
+          <a-form-item label="宽度" name="page-width"
             :rules="[{ required: true, message: 'Please input your password!' }]">
-            <a-input-password v-model:value="formState.password">
-            </a-input-password>
+            <a-input-number v-model:value="formState.password">
+            </a-input-number>
           </a-form-item>
 
           <a-form-item>
-            <a-button :disabled="disabled" type="primary" html-type="submit">Log in</a-button>
+            <a-button :disabled="disabled" type="primary" html-type="submit">{{
+              proxy?.$t(`${langPrefix}.save`)
+            }}</a-button>
           </a-form-item>
         </a-form>
 
@@ -171,6 +173,12 @@ const { microParts } = defineProps({
   microParts: Object
 });
 
+//合并微件
+const _MicroCards: Record<string, any> = {
+  ...MicroCards,
+  ...microParts
+};
+
 // 响应式状态
 const loading = ref(false);
 const tempId = ref("")
@@ -250,20 +258,39 @@ const onFinishFailed = (errorInfo: any) => {
 };
 
 // 方法
+
+// proxy 为空时的错误提示
+async function handleApiRequest<T>(apiCall: () => Promise<T>, errorMessage: string): Promise<T | null> {
+  if (!proxy) {
+    console.error('Proxy is null');
+    return null;
+  }
+  try {
+    return await apiCall();
+  } catch (error: unknown) {
+    console.error(`${errorMessage}:`, error);
+    proxy.$message.error(errorMessage);
+    return null;
+  }
+}
+
 const save = async () => {
   console.log(tempId.value);
-
-  if (tempId.value) {
-    let _content = JSON.stringify(state.activatedComponents);
+  if (!tempId.value) {
+    proxy?.$message.warning("请先选择模板！");
+    return;
+  } else return handleApiRequest(async () => {
+    const _content = JSON.stringify(state.activatedComponents);
     oldContent.value = _content || "[]";
-    let _navigationId = Number(navigationId.value || 0);
-    let _obj = {
+    const _navigationId = Number(navigationId.value || 0);
+    const _obj = {
       id: contentId.value || 0,
       tempId: tempId.value,
       content: _content,
     };
-    if (proxy) {
-      return await proxy.$axios
+
+    try {
+      const res = await proxy?.$axios
         .post(
           "/self/homePageInfo/saveTempInfo",
           _navigationId
@@ -273,21 +300,24 @@ const save = async () => {
             }
             : _obj
         )
-        .then((res) => {
-          proxy.$message.success(proxy.$t(`${langPrefix}.addMessage`));
-          let { id } = res.data;
-          if (id) contentId.value = id;
-        });
-    } else {
-      console.error('Proxy is null');
+      proxy!.$message.success(proxy!.$t(`${langPrefix}.addMessage`));
+      if (res?.data.id) contentId.value = res?.data.id;
+      return res;
+    } catch (error: unknown) {
+      console.error('保存操作失败:', error)
+      proxy!.$message.error('保存操作失败') // 新增错误提示
+      return null;
     }
-  }
+
+  }, '保存操作失败');
+
 }
 
 /** start 获取页面输数据相关 **/
 const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
-  if (proxy) {
-    proxy.$axios.post("/self/homePageInfo/getTempInfo", data).then((res) => {
+  return handleApiRequest(async () => {
+    try {
+      const res = await proxy?.$axios.post("/self/homePageInfo/getTempInfo", data);
       let { content, id } = res?.data || {};
 
       if (content) state.activatedComponents = JSON.parse(content);
@@ -325,14 +355,14 @@ const getTempInfo = (data: { tempId: string | number; navigationId?: number }) =
           )
         ).map((item) => item.key),
       ]);
-    }).catch((err) => {
-      console.error('获取页面数据失败:', err)
-      proxy.$message.error('数据加载失败') // 新增错误提示
-    });
-  } else {
-    console.error('Proxy is null');
-    return null;
-  }
+
+      return res;
+    } catch (error: unknown) {
+      console.error('获取页面数据失败:', error)
+      proxy?.$message.error('数据加载失败') // 新增错误提示
+      return null;
+    }
+  }, '获取页面数据失败');
 }
 
 const getSelfServiceItemList = async (itemType: number, terminalType: number) => {
@@ -530,8 +560,28 @@ const removeComponent = (type: string, keys: string[], actIndex: number = 0) => 
   store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
 }
 
+// 更新组件列表
+const updateComponentItem = (
+  item: ComponentItem,
+  cardData: CardData,
+  selfServiceData: SelfServiceData
+) => {
+  const { minRowSpan, minColSpan } = cardData.data();
+  item.minWidth = minRowSpan;
+  item.minHeight = minColSpan;
+  item.width = minRowSpan;
+  item.height = minColSpan;
+  item.editTitle = false;
+  item.positionX = 0;
+  item.positionY = 0;
+  item.selfServiceData = selfServiceData;
+};
+
 // 新增数据获取方法
 const fetchComponentData = async () => {
+  tempId.value = String(route.query.tempIdQuery) || "tmp";
+  terminalType.value = Number(route.query.terminalTypeQuery) || 0;
+
   //获取组件列表
   await Promise.all([
     getSelfServiceItemList(0, terminalType.value), //其他类
@@ -543,9 +593,6 @@ const fetchComponentData = async () => {
       (res || []).map((item, index) => {
         let dataList: DemoItem[] = item?.data?.dataList || [];
         //console.log(dataList);
-
-        tempId.value = String(route.query.tempIdQuery) || "tmp";
-        terminalType.value = Number(route.query.terminalTypeQuery) || 0;
 
         //获取组件基本信息
         state.components[index] = (dataList || []).map((item) => {
@@ -570,32 +617,9 @@ const fetchComponentData = async () => {
         //console.log(1,MicroCards);
         //console.log(2,state.microParts);
 
-        //合并微件
-        const _MicroCards: Record<string, any> = {
-          ...MicroCards,
-          ...microParts
-        };
 
-        // 更新组件列表
-        const updateComponentItem = (
-          item: ComponentItem,
-          cardData: CardData,
-          selfServiceData: SelfServiceData
-        ) => {
-          const { minRowSpan, minColSpan } = cardData.data();
-          item.minWidth = minRowSpan;
-          item.minHeight = minColSpan;
-          item.width = minRowSpan;
-          item.height = minColSpan;
-          item.editTitle = false;
-          item.positionX = 0;
-          item.positionY = 0;
-          item.selfServiceData = selfServiceData;
-        };
-
-        //删除不存在的微件
         if (terminalType.value === 0) {
-
+          //删除不存在的微件
           state.components[index] = state.components[index].filter(
             (item, index) => {
               const microCard = item.url && _MicroCards[item.url];
@@ -605,8 +629,28 @@ const fetchComponentData = async () => {
               return !!microCard;
             }
           );
+
+          //获取已激活模板信息
+          const workbenchData = JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {} as Record<string, any>;
+          if (workbenchData[tempId.value]) {
+            const {
+              contentId: _contentId,
+              activatedComponents: _activatedComponents,
+              oldContent: _oldContent,
+              checkedKeys: _checkedKeys,
+            } = workbenchData[tempId.value];
+            contentId.value = _contentId || 0;
+            state.activatedComponents = _activatedComponents;
+            //checkedKeys in store
+            store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
+            oldContent.value = _oldContent;
+          } else
+            getTempInfo({
+              tempId: tempId.value,
+            });
         }
-        else if (terminalType.value === 1)
+        else if (terminalType.value === 1) {
+          //删除不存在的微件
           state.components[index] = state.components[index].map((item) => {
             item.minWidth = 10;
             item.minHeight = 3;
@@ -616,66 +660,47 @@ const fetchComponentData = async () => {
             item.positionY = 0;
             return item;
           });
-      });
 
-      //获取已激活模板信息
-      if (terminalType.value === 0) {
-        const workbenchData = JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {} as Record<string, any>;
-        if (workbenchData[tempId.value]) {
-          const {
-            contentId: _contentId,
-            activatedComponents: _activatedComponents,
-            oldContent: _oldContent,
-            checkedKeys: _checkedKeys,
-          } = workbenchData[tempId.value];
-          contentId.value = _contentId || 0;
-          state.activatedComponents = _activatedComponents;
-          //checkedKeys in store
-          store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
-          oldContent.value = _oldContent;
-        } else
-          getTempInfo({
-            tempId: tempId.value,
-          });
-      } else if (terminalType.value === 1) {
-        getNavigationList().then((res) => {
-          state.tabs = res?.data || [];
-          tabsActiveKey.value = 0;
-          navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
+          //获取已激活模板信息
+          getNavigationList().then((res) => {
+            state.tabs = res?.data || [];
+            tabsActiveKey.value = 0;
+            navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
 
-          if (navigationId.value <= 0) {
-            proxy?.$axios
-              .post(
-                "/self/homePageInfo/saveNavigation",
-                state.tabs.map((item) => {
-                  return { ...item, tempId: Number(tempId) };
-                })
-              )
-              .then(() => {
-                getNavigationList().then((res) => {
-                  state.tabs = res?.data || [];
-                  navigationId.value = state.tabs[0] ? state.tabs[0].id : -1;
+            if (navigationId.value <= 0) {
+              proxy?.$axios
+                .post(
+                  "/self/homePageInfo/saveNavigation",
+                  state.tabs.map((item) => {
+                    return { ...item, tempId: Number(tempId) };
+                  })
+                )
+                .then(() => {
+                  getNavigationList().then((res) => {
+                    state.tabs = res?.data || [];
+                    navigationId.value = state.tabs[0] ? state.tabs[0].id : -1;
 
-                  if (state.tabs.length > 0)
-                    getTempInfo({
-                      tempId: Number(tempId),
-                      navigationId: Number(navigationId.value),
-                    });
+                    if (state.tabs.length > 0)
+                      getTempInfo({
+                        tempId: Number(tempId),
+                        navigationId: Number(navigationId.value),
+                      });
+                  });
                 });
-              });
-          } else {
-            if (state.tabs.length > 0)
-              getTempInfo({
-                tempId: Number(tempId),
-                navigationId: Number(navigationId.value),
-              });
-          }
+            } else {
+              if (state.tabs.length > 0)
+                getTempInfo({
+                  tempId: Number(tempId),
+                  navigationId: Number(navigationId.value),
+                });
+            }
 
-          gridColumn.value = 10;
-          gridScale.value = 30.3;
-          gridPadding.value = 8;
-        });
-      }
+            gridColumn.value = 10;
+            gridScale.value = 30.3;
+            gridPadding.value = 8;
+          });
+        }
+      });
     })
     .catch((err) => {
       console.error('获取模板信息失败:', err)
@@ -715,7 +740,7 @@ onMounted(async () => {
     console.error('初始化失败:', err)
     proxy?.$message.error('初始化失败，请刷新重试')
   } finally {
-    //
+    //结束加载
     loading.value = false;
   }
 })
