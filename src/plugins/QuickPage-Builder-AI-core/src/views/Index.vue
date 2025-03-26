@@ -1,5 +1,9 @@
+<template>
+  <edits :micro-parts="microParts" v-if="edit"></edits>
+  <!-- <views :micro-parts="microParts" :dnd-id="dndId" :dnd-id-url="dndIdUrl" v-else></views> -->
+</template>
+
 <script setup lang="ts">
-import { ref } from 'vue'
 import Edits from '../components/Dnd/Index.vue'
 
 defineProps({
@@ -15,18 +19,9 @@ defineProps({
     type: Boolean,
     default: true
   },
-  microParts: {}
+  microParts: {
+    type: Object as () => Record<string, any>,
+    default: () => ({})
+  }
 })
-
-const gridColumn = ref(24)
-const gridRow = ref(36)
-const activatedComponents = ref([])
-const terminalType = ref(0)
 </script>
-
-<template>
-  <edits :micro-parts="microParts" v-if="edit"></edits>
-  <!-- <views :micro-parts="microParts" :dnd-id="dndId" :dnd-id-url="dndIdUrl" v-else></views> -->
-</template>
-
-

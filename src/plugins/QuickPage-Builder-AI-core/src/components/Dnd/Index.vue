@@ -1,69 +1,69 @@
 <template>
   <a-layout>
-    <a-layout :style="{ width: layoutWidth ? layoutWidth + 'px' : null, margin: layoutWidth ? '0 auto' : null }">
-      <a-layout-sider :class="layoutWidth ? 'fixedToLeft' : null">
-        <div class="title">
-          <span>微件列表</span>
+    <a-spin :spinning="loading">
+      <a-layout :style="layoutStyle">
+        <a-layout-sider :class="siderClass">
+          <div class="title">
+            <span>微件列表</span>
+          </div>
+          <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
+            :auto-expand-parent="autoExpandParent" :tree-data="state.treeData" v-model:checkedKeys="checkedKeys"
+            @expand="onExpand" @check="onCheck" @select="onSelect" />
+        </a-layout-sider>
+        <a-layout-content>
+          <component :is="currentComponent" :terminal-type="Number(terminalType)"
+            :activated-components="state.activatedComponents" :grid-row="gridRow" :grid-column="gridColumn"
+            :micro-parts="microParts" />
+        </a-layout-content>
+      </a-layout>
+
+      <a-layout-footer>
+        <a-form :model="formState" name="horizontal_login" layout="inline" autocomplete="off" @finish="onFinish"
+          @finishFailed="onFinishFailed">
+          <a-form-item label="Username" name="username"
+            :rules="[{ required: true, message: 'Please input your username!' }]">
+            <a-input v-model:value="formState.username">
+            </a-input>
+          </a-form-item>
+
+          <a-form-item label="Password" name="password"
+            :rules="[{ required: true, message: 'Please input your password!' }]">
+            <a-input-password v-model:value="formState.password">
+            </a-input-password>
+          </a-form-item>
+
+          <a-form-item>
+            <a-button :disabled="disabled" type="primary" html-type="submit">Log in</a-button>
+          </a-form-item>
+        </a-form>
+
+        <div class="toolbar" v-if="!isPreviewModel">
+          <div class="setGridRow">
+            <label for="page-height">高度</label>
+            <a-input-number v-model="gridRow" id="page-height" />
+            <label for="page-width">宽度</label>
+            <a-input-number v-model="gridColumn" id="page-width" />
+          </div>
+          <a-button v-if="terminalType === 0" @click="preview">{{
+            proxy?.$t(`${langPrefix}.preview`)
+            }}</a-button>
+          <!-- <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> -->
+          <a-button type="primary" @click="save">{{
+            proxy?.$t(`${langPrefix}.save`)
+            }}</a-button>
         </div>
-        <a-tree checkable :default-expand-all="true" v-model:expandedKeys="expandedKeys"
-          :auto-expand-parent="autoExpandParent" :tree-data="state.treeData" v-model:checkedKeys="checkedKeys"
-          @expand="onExpand" @check="onCheck" @select="onSelect" />
-      </a-layout-sider>
-      <a-layout-content>
-        <dnd-core :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
-          :grid-row="gridRow" :grid-column="gridColumn" v-if="!isPreviewModel"></dnd-core>
-
-        <dnd-preview :terminal-type="Number(terminalType)" :activated-components="state.activatedComponents"
-          :grid-row="gridRow" :grid-column="gridColumn" :micro-parts="microParts" v-if="isPreviewModel"></dnd-preview>
-      </a-layout-content>
-    </a-layout>
-
-    <a-layout-footer>
-      <a-form :model="formState" name="horizontal_login" layout="inline" autocomplete="off" @finish="onFinish"
-        @finishFailed="onFinishFailed">
-        <a-form-item label="Username" name="username"
-          :rules="[{ required: true, message: 'Please input your username!' }]">
-          <a-input v-model:value="formState.username">
-          </a-input>
-        </a-form-item>
-
-        <a-form-item label="Password" name="password"
-          :rules="[{ required: true, message: 'Please input your password!' }]">
-          <a-input-password v-model:value="formState.password">
-          </a-input-password>
-        </a-form-item>
-
-        <a-form-item>
-          <a-button :disabled="disabled" type="primary" html-type="submit">Log in</a-button>
-        </a-form-item>
-      </a-form>
-
-      <div class="toolbar" v-if="!isPreviewModel">
-        <div class="setGridRow">
-          <label for="page-height">高度</label>
-          <a-input-number v-model="gridRow" id="page-height" />
-          <label for="page-width">宽度</label>
-          <a-input-number v-model="gridColumn" id="page-width" />
+        <div class="toolbar" v-else>
+          <a-button type="primary" v-if="terminalType === 0" @click="preview">{{
+            proxy?.$t(`${langPrefix}.preview`)
+            }}</a-button>
+          <a-button @click="cancel">{{ proxy?.$t(`${langPrefix}.cancel`) }}</a-button>
         </div>
-        <a-button v-if="terminalType === 0" @click="preview">{{
-          $t(`${langPrefix}.preview`)
-          }}</a-button>
-        <!-- <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> -->
-        <a-button type="primary" @click="save">{{
-          $t(`${langPrefix}.save`)
-          }}</a-button>
-      </div>
-      <div class="toolbar" v-else>
-        <a-button type="primary" v-if="terminalType === 0" @click="preview">{{
-          $t(`${langPrefix}.preview`)
-          }}</a-button>
-        <a-button @click="cancel">{{ $t(`${langPrefix}.cancel`) }}</a-button>
-      </div>
-    </a-layout-footer>
+      </a-layout-footer>
+    </a-spin>
   </a-layout>
 
   <!-- 移动端 预览 -->
-  <a-modal :mask-closable="false" :title="$t(`${langPrefix}.previewMobile`)" :footer="null"
+  <a-modal :mask-closable="false" :title="proxy?.$t(`${langPrefix}.previewMobile`)" :footer="null"
     v-model="editPreviewMobileModalVisible" width="415px" destroy-on-close>
     <dnd-preview-mobile />
   </a-modal>
@@ -84,47 +84,24 @@ const DndPreviewMobile = defineAsyncComponent(() => import("./PreviewMobile.vue"
 
 import type { AxiosInstance } from 'axios'
 
-// 为 proxy 添加类型声明
+// 增强的 proxy 类型
 interface CustomProxy {
-  $t: any;
+  $t: (key: string) => string;
   $axios: AxiosInstance;
   $message: {
     success: (msg: string) => void;
     error: (msg: string) => void;
     warning: (msg: string) => void;
   };
-  $confirm: (options: { title: string; content: string; onOk: () => void; onCancel: () => void }) => void;
+  $confirm: (options: {
+    title: string;
+    content: string;
+    okText?: string;
+    cancelText?: string;
+    onOk: () => void;
+    onCancel?: () => void;
+  }) => void;
 }
-
-//数据
-const langPrefix = "management"
-const store = useStore()
-const route = useRoute()
-const instance = getCurrentInstance();
-const proxy = instance ? (instance.proxy as unknown as CustomProxy) : null; // 获取当前实例的代理对象
-
-//属性
-const { microParts } = defineProps({
-  microParts: Object
-});
-
-// 响应式状态
-const tempId = ref("")
-const contentId = ref(0)
-const navigationId = ref(0)
-const terminalType = ref(0)
-const isPreviewModel = ref(false)
-const editPreviewMobileModalVisible = ref(false)
-const editNavSenuSettingsModalVisible = ref(false)
-const expandedKeys = ref(["0-0", "0-1"])
-const autoExpandParent = ref(true)
-
-const gridColumn = ref(24)
-const gridRow = ref(36)
-const gridScale = ref(30)
-const gridPadding = ref(20)
-const oldContent = ref("[]")
-const tabsActiveKey = ref(0)
 
 interface ComponentItem {
   title: string
@@ -164,32 +141,59 @@ interface FormState {
   password: string;
 }
 
-const state = reactive({
-  treeData: [],
-  components: [] as ComponentItem[][],
-  activatedComponents: [] as ComponentItem[],
-  tabs: [] as TabItem[],
-})
+interface treeDataItem {
+  title: string
+  key: string,
+  disabled?: boolean,
+  children: { title: string; key: string }[],
+}
+
+//微件基本信息获取函数类型声明
+interface CardData {
+  data: () => {
+    minRowSpan: number
+    minColSpan: number
+  }
+}
+
+// 基础数据获取
+const langPrefix = "management"
+const store = useStore()
+const route = useRoute()
+const instance = getCurrentInstance();
+const proxy = instance ? (instance.proxy as unknown as CustomProxy) : null; // 获取当前实例的代理对象
 
 // 使用 useWindowSize 获取窗口宽度
 const { width: windowWidth } = useWindowSize()
 
-const formState = reactive<FormState>({
-  username: '',
-  password: '',
+//属性
+const { microParts } = defineProps({
+  microParts: Object
 });
-const onFinish = (values: any) => {
-  console.log('Success:', values);
-};
 
-const onFinishFailed = (errorInfo: any) => {
-  console.log('Failed:', errorInfo);
-};
+// 响应式状态
+const loading = ref(false);
+const tempId = ref("")
+const contentId = ref(0)
+const navigationId = ref(0)
+const terminalType = ref(0)
+const isPreviewModel = ref(false)
+const editPreviewMobileModalVisible = ref(false)
+const editNavSenuSettingsModalVisible = ref(false)
+const expandedKeys = ref(["0-0", "0-1"])
+const autoExpandParent = ref(true)
+
+const gridColumn = ref(24)
+const gridRow = ref(36)
+const gridScale = ref(30)
+const gridPadding = ref(20)
+const oldContent = ref("[]")
+const tabsActiveKey = ref(0)
+
+// 计算属性
 const disabled = computed(() => {
   return !(formState.username && formState.password);
 });
-
-// 计算属性
 const MicroCardsList = computed(() => {
   return (state.components[0] || []).map((item, index) => ({
     title: item.title,
@@ -204,6 +208,18 @@ const ContainersList = computed(() => {
   }))
 })
 // 动态计算布局宽度
+const layoutStyle = computed(() => ({
+  width: layoutWidth.value ? `${layoutWidth.value}px` : null,
+  margin: layoutWidth.value ? '0 auto' : null
+}))
+
+const siderClass = computed(() => ({
+  fixedToLeft: !!layoutWidth.value
+}))
+
+// 动态计算当前组件
+const currentComponent = computed(() => isPreviewModel.value ? DndPreview : DndCore)
+
 const layoutWidth = computed(() => {
   const baseWidth = (gridScale.value + gridPadding.value) * gridColumn.value - 20
   return windowWidth.value < 1580 ? null : baseWidth
@@ -212,6 +228,26 @@ const checkedKeys = computed({
   get: () => store.state.dnd.checkedKeys,
   set: (val) => store.commit("dnd/PUSH_CHECKEDKEYS", val)
 })
+
+const state = reactive({
+  treeData: [] as treeDataItem[],
+  components: [] as ComponentItem[][],
+  activatedComponents: [] as ComponentItem[],
+  tabs: [] as TabItem[],
+})
+
+const formState = reactive<FormState>({
+  username: '',
+  password: '',
+});
+
+const onFinish = (values: any) => {
+  console.log('Success:', values);
+};
+
+const onFinishFailed = (errorInfo: any) => {
+  console.log('Failed:', errorInfo);
+};
 
 // 方法
 const save = async () => {
@@ -494,169 +530,193 @@ const removeComponent = (type: string, keys: string[], actIndex: number = 0) => 
   store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
 }
 
-//生命周期
-onMounted(() => {
-  try {
-    const { tempIdQuery, terminalTypeQuery } = route.query
-    tempId.value = String(tempIdQuery) || "tmp"
-    terminalType.value = Number(terminalTypeQuery) || 0
+// 新增数据获取方法
+const fetchComponentData = async () => {
+  //获取组件列表
+  await Promise.all([
+    getSelfServiceItemList(0, terminalType.value), //其他类
+    getSelfServiceItemList(1, terminalType.value), //容器类
+  ])
+    .then((res) => {
+      if (!res) return;
 
-    //获取组件列表
-    Promise.all([
-      getSelfServiceItemList(0, terminalType.value), //其他类
-      getSelfServiceItemList(1, terminalType.value), //容器类
-    ])
-      .then((res) => {
-        if (!res) return;
+      (res || []).map((item, index) => {
+        let dataList: DemoItem[] = item?.data?.dataList || [];
+        //console.log(dataList);
 
-        (res || []).map((item, index) => {
-          let dataList: DemoItem[] = item?.data?.dataList || [];
-          //console.log(dataList);
+        tempId.value = String(route.query.tempIdQuery) || "tmp";
+        terminalType.value = Number(route.query.terminalTypeQuery) || 0;
 
-          //
-          state.components[index] = (dataList || []).map((item) => {
-            return {
-              title: item.itemName,
-              key: String(item.id),
-              url: item.url,
-              minWidth: 0,
-              minHeight: 0,
-              width: 0,
-              height: 0,
-              editTitle: false,
-              positionX: 0,
-              positionY: 0,
-              selfServiceData: {} as SelfServiceData,
-              treeKey: '',
-              ccs: '',
-            };
-          });
-
-          //console.log(state.components);
-          //console.log(1,MicroCards);
-          //console.log(2,state.microParts);
-
-          const _MicroCards: Record<string, any> = { ...MicroCards, ...microParts };
-
-          if (terminalType.value === 0) {
-            //为元素赋值宽度长度, 并过滤没有对应组件的元素
-            const updateComponentItem = <T>(item: ComponentItem, microCardData: T, selfServiceData: SelfServiceData) => {
-              const { minRowSpan, minColSpan } = (microCardData as { data: () => { minRowSpan: number; minColSpan: number } }).data();
-              item.minWidth = minRowSpan;
-              item.minHeight = minColSpan;
-              item.width = minRowSpan;
-              item.height = minColSpan;
-              item.editTitle = false;
-              item.positionX = 0;
-              item.positionY = 0;
-              item.selfServiceData = selfServiceData;
-            };
-
-            state.components[index] = state.components[index].filter(
-              (item, index) => {
-                const microCard = item.url && _MicroCards[item.url];
-                if (microCard) {
-                  updateComponentItem(item, microCard, dataList[index]);
-                }
-                return !!microCard;
-              }
-            );
-          }
-          else if (terminalType.value === 1)
-            state.components[index] = state.components[index].map((item) => {
-              item.minWidth = 10;
-              item.minHeight = 3;
-              item.width = 10;
-              item.height = 3;
-              item.positionX = 0;
-              item.positionY = 0;
-              return item;
-            });
+        //获取组件基本信息
+        state.components[index] = (dataList || []).map((item) => {
+          return {
+            title: item.itemName,
+            key: String(item.id),
+            url: item.url,
+            minWidth: 0,
+            minHeight: 0,
+            width: 0,
+            height: 0,
+            editTitle: false,
+            positionX: 0,
+            positionY: 0,
+            selfServiceData: {} as SelfServiceData,
+            treeKey: '',
+            ccs: '',
+          };
         });
 
-        onExpand(expandedKeys.value);
+        //console.log(state.components);
+        //console.log(1,MicroCards);
+        //console.log(2,state.microParts);
 
-        //设置树列表
-        state.treeData = [
-          {
-            title: "其他类",
-            key: "0-0",
-            disabled: true,
-            children: MicroCardsList,
-          },
-          {
-            title: "容器类",
-            key: "0-1",
-            disabled: true,
-            children: ContainersList,
-          },
-        ];
+        //合并微件
+        const _MicroCards: Record<string, any> = {
+          ...MicroCards,
+          ...microParts
+        };
 
+        // 更新组件列表
+        const updateComponentItem = (
+          item: ComponentItem,
+          cardData: CardData,
+          selfServiceData: SelfServiceData
+        ) => {
+          const { minRowSpan, minColSpan } = cardData.data();
+          item.minWidth = minRowSpan;
+          item.minHeight = minColSpan;
+          item.width = minRowSpan;
+          item.height = minColSpan;
+          item.editTitle = false;
+          item.positionX = 0;
+          item.positionY = 0;
+          item.selfServiceData = selfServiceData;
+        };
+
+        //删除不存在的微件
         if (terminalType.value === 0) {
-          let workbenchData = JSON.parse(window.sessionStorage.getItem("activatedComponents")) || [];
-          if (workbenchData[tempId.value]) {
-            let {
-              contentId,
-              activatedComponents,
-              oldContent,
-              checkedKeys,
-            } = workbenchData[tempId.value];
-            contentId.value = contentId || 0;
-            state.activatedComponents = activatedComponents;
-            //checkedKeys in store
-            store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
-            state.oldContent = oldContent;
-          } else
-            getTempInfo({
-              tempId: tempId.value,
-            });
-        } else if (terminalType.value === 1) {
-          getNavigationList().then((res) => {
-            state.tabs = res || [];
-            state.tabsActiveKey = 0;
-            navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
 
-            if (navigationId.value <= 0) {
-              proxy.$axios
-                .post(
-                  "/self/homePageInfo/saveNavigation",
-                  state.tabs.map((item) => {
-                    return { ...item, tempId: Number(tempId) };
-                  })
-                )
-                .then(() => {
-                  getNavigationList().then((res) => {
-                    state.tabs = res || [];
-                    navigationId.value = state.tabs[0] ? state.tabs[0].id : -1;
-
-                    if (state.tabs.length > 0)
-                      state.getTempInfo({
-                        tempId: Number(tempId),
-                        navigationId: Number(navigationId.value),
-                      });
-                  });
-                });
-            } else {
-              if (state.tabs.length > 0)
-                getTempInfo({
-                  tempId: Number(tempId),
-                  navigationId: Number(navigationId.value),
-                });
+          state.components[index] = state.components[index].filter(
+            (item, index) => {
+              const microCard = item.url && _MicroCards[item.url];
+              if (microCard) {
+                updateComponentItem(item, microCard, dataList[index]);
+              }
+              return !!microCard;
             }
-
-            gridColumn.value = 10;
-            state.gridScale = 30.3;
-            state.gridPadding = 8;
-          });
+          );
         }
-      })
-      .catch((err) => {
-        console.error('获取模板信息失败:', err)
-        proxy.$message.error('数据加载失败') // 新增错误提示
+        else if (terminalType.value === 1)
+          state.components[index] = state.components[index].map((item) => {
+            item.minWidth = 10;
+            item.minHeight = 3;
+            item.width = 10;
+            item.height = 3;
+            item.positionX = 0;
+            item.positionY = 0;
+            return item;
+          });
       });
+
+      //获取已激活模板信息
+      if (terminalType.value === 0) {
+        const workbenchData = JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {} as Record<string, any>;
+        if (workbenchData[tempId.value]) {
+          const {
+            contentId: _contentId,
+            activatedComponents: _activatedComponents,
+            oldContent: _oldContent,
+            checkedKeys: _checkedKeys,
+          } = workbenchData[tempId.value];
+          contentId.value = _contentId || 0;
+          state.activatedComponents = _activatedComponents;
+          //checkedKeys in store
+          store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
+          oldContent.value = _oldContent;
+        } else
+          getTempInfo({
+            tempId: tempId.value,
+          });
+      } else if (terminalType.value === 1) {
+        getNavigationList().then((res) => {
+          state.tabs = res?.data || [];
+          tabsActiveKey.value = 0;
+          navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
+
+          if (navigationId.value <= 0) {
+            proxy?.$axios
+              .post(
+                "/self/homePageInfo/saveNavigation",
+                state.tabs.map((item) => {
+                  return { ...item, tempId: Number(tempId) };
+                })
+              )
+              .then(() => {
+                getNavigationList().then((res) => {
+                  state.tabs = res?.data || [];
+                  navigationId.value = state.tabs[0] ? state.tabs[0].id : -1;
+
+                  if (state.tabs.length > 0)
+                    getTempInfo({
+                      tempId: Number(tempId),
+                      navigationId: Number(navigationId.value),
+                    });
+                });
+              });
+          } else {
+            if (state.tabs.length > 0)
+              getTempInfo({
+                tempId: Number(tempId),
+                navigationId: Number(navigationId.value),
+              });
+          }
+
+          gridColumn.value = 10;
+          gridScale.value = 30.3;
+          gridPadding.value = 8;
+        });
+      }
+    })
+    .catch((err) => {
+      console.error('获取模板信息失败:', err)
+      proxy?.$message.error('数据加载失败') // 新增错误提示
+    });
+};
+
+//生命周期
+onMounted(async () => {
+  //初始化
+  loading.value = true;
+  try {
+
+    //获取组件数据
+    await fetchComponentData();
+
+    //展开树列表
+    onExpand(expandedKeys.value);
+
+    //设置树列表
+    state.treeData = [
+      {
+        title: "其他类",
+        key: "0-0",
+        disabled: true,
+        children: MicroCardsList.value,
+      },
+      {
+        title: "容器类",
+        key: "0-1",
+        disabled: true,
+        children: ContainersList.value,
+      },
+    ];
+
   } catch (err) {
     console.error('初始化失败:', err)
-    proxy.$message.error('初始化失败，请刷新重试')
+    proxy?.$message.error('初始化失败，请刷新重试')
+  } finally {
+    //
+    loading.value = false;
   }
 })
 
@@ -716,8 +776,12 @@ onUnmounted(() => {
 .ant-layout-footer {
   position: fixed;
   bottom: 0;
-  width: 100%;
-  padding: 0 20px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #fff;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px 24px;
 }
 
 .toolbar {
