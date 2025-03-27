@@ -20,18 +20,18 @@
       <a-layout-footer>
         <a-form :style="layoutStyle" :model="formState" name="save" layout="inline" autocomplete="off" @finish="save"
           @finishFailed="onFinishFailed" v-if="!isPreviewModel">
-          <a-form-item label="高度" name="page-height" :rules="[{ type: 'number', min: 1 }]">
+          <a-form-item label="高度" name="gridRow" :rules="[{ type: 'number', min: 1 }]">
             <a-input-number v-model:value="formState.gridRow">
             </a-input-number>
           </a-form-item>
 
-          <a-form-item label="宽度" name="page-width" :rules="[{ type: 'number', min: 1 }]">
+          <a-form-item label="宽度" name="gridColumn" :rules="[{ type: 'number', min: 1 }]">
             <a-input-number v-model:value="formState.gridColumn">
             </a-input-number>
           </a-form-item>
 
           <a-form-item>
-            <a-button v-if="terminalType === 0" @click="preview">
+            <a-button v-if="terminalType === 0" @click.prevent="preview">
               {{ proxy?.$t(`${langPrefix}.preview`) }}</a-button>
           </a-form-item>
 
@@ -800,5 +800,10 @@ onUnmounted(() => {
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   padding: 16px 24px;
+
+  form {
+    justify-content: flex-end
+  }
+
 }
 </style>
