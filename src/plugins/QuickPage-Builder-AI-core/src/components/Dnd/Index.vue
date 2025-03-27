@@ -18,48 +18,43 @@
       </a-layout>
 
       <a-layout-footer>
-        <a-form :model="formState" name="horizontal_login" layout="inline" autocomplete="off" @finish="save"
-          @finishFailed="onFinishFailed">
-          <a-form-item label="高度" name="page-height"
-            :rules="[{ required: true, message: 'Please input your username!' }]">
-            <a-input-number v-model:value="formState.username">
+        <a-form :style="layoutStyle" :model="formState" name="save" layout="inline" autocomplete="off" @finish="save"
+          @finishFailed="onFinishFailed" v-if="!isPreviewModel">
+          <a-form-item label="高度" name="page-height" :rules="[{ type: 'number', min: 1 }]">
+            <a-input-number v-model:value="formState.gridRow">
             </a-input-number>
           </a-form-item>
 
-          <a-form-item label="宽度" name="page-width"
-            :rules="[{ required: true, message: 'Please input your password!' }]">
-            <a-input-number v-model:value="formState.password">
+          <a-form-item label="宽度" name="page-width" :rules="[{ type: 'number', min: 1 }]">
+            <a-input-number v-model:value="formState.gridColumn">
             </a-input-number>
           </a-form-item>
 
           <a-form-item>
-            <a-button :disabled="disabled" type="primary" html-type="submit">{{
-              proxy?.$t(`${langPrefix}.save`)
-            }}</a-button>
+            <a-button v-if="terminalType === 0" @click="preview">
+              {{ proxy?.$t(`${langPrefix}.preview`) }}</a-button>
+          </a-form-item>
+
+          <!-- <a-form-item>
+            <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> 
+          </a-form-item>-->
+
+          <a-form-item>
+            <a-button :disabled="disabled" type="primary" html-type="submit">
+              {{ proxy?.$t(`${langPrefix}.save`) }}</a-button>
           </a-form-item>
         </a-form>
 
-        <div class="toolbar" v-if="!isPreviewModel">
-          <div class="setGridRow">
-            <label for="page-height">高度</label>
-            <a-input-number v-model="gridRow" id="page-height" />
-            <label for="page-width">宽度</label>
-            <a-input-number v-model="gridColumn" id="page-width" />
-          </div>
-          <a-button v-if="terminalType === 0" @click="preview">{{
-            proxy?.$t(`${langPrefix}.preview`)
-            }}</a-button>
-          <!-- <a-button v-if="terminalType === '1'" @click="previewMobile">{{ $t(`${langPrefix}.preview`) }}</a-button> -->
-          <a-button type="primary" @click="save">{{
-            proxy?.$t(`${langPrefix}.save`)
-            }}</a-button>
-        </div>
-        <div class="toolbar" v-else>
-          <a-button type="primary" v-if="terminalType === 0" @click="preview">{{
-            proxy?.$t(`${langPrefix}.preview`)
-            }}</a-button>
-          <a-button @click="cancel">{{ proxy?.$t(`${langPrefix}.cancel`) }}</a-button>
-        </div>
+        <a-form :style="layoutStyle" name="preview" layout="inline" autocomplete="off" @finish="preview"
+          @finishFailed="onFinishFailed" v-else>
+          <a-form-item>
+            <a-button type="primary" v-if="terminalType === 0" html-type="submit">
+              {{ proxy?.$t(`${langPrefix}.preview`) }}</a-button>
+          </a-form-item>
+          <a-form-item>
+            <a-button @click="cancel">{{ proxy?.$t(`${langPrefix}.cancel`) }}</a-button>
+          </a-form-item>
+        </a-form>
       </a-layout-footer>
     </a-spin>
   </a-layout>
@@ -139,8 +134,8 @@ interface DemoItem {
 }
 
 interface FormState {
-  username: string;
-  password: string;
+  gridRow: number;
+  gridColumn: number;
 }
 
 interface treeDataItem {
@@ -184,7 +179,7 @@ const loading = ref(false);
 const tempId = ref("")
 const contentId = ref(0)
 const navigationId = ref(0)
-const terminalType = ref(0)
+const terminalType = ref(0) // 0: PC, 1: Mobile
 const isPreviewModel = ref(false)
 const editPreviewMobileModalVisible = ref(false)
 const editNavSenuSettingsModalVisible = ref(false)
@@ -200,7 +195,7 @@ const tabsActiveKey = ref(0)
 
 // 计算属性
 const disabled = computed(() => {
-  return !(formState.username && formState.password);
+  return !(formState.gridRow && formState.gridColumn);
 });
 const MicroCardsList = computed(() => {
   return (state.components[0] || []).map((item, index) => ({
@@ -232,6 +227,7 @@ const layoutWidth = computed(() => {
   const baseWidth = (gridScale.value + gridPadding.value) * gridColumn.value - 20
   return windowWidth.value < 1580 ? null : baseWidth
 })
+
 const checkedKeys = computed({
   get: () => store.state.dnd.checkedKeys,
   set: (val) => store.commit("dnd/PUSH_CHECKEDKEYS", val)
@@ -245,17 +241,9 @@ const state = reactive({
 })
 
 const formState = reactive<FormState>({
-  username: '',
-  password: '',
+  gridRow: gridRow.value,
+  gridColumn: gridColumn.value,
 });
-
-const onFinish = (values: any) => {
-  console.log('Success:', values);
-};
-
-const onFinishFailed = (errorInfo: any) => {
-  console.log('Failed:', errorInfo);
-};
 
 // 方法
 
@@ -273,6 +261,10 @@ async function handleApiRequest<T>(apiCall: () => Promise<T>, errorMessage: stri
     return null;
   }
 }
+
+const onFinishFailed = (errorInfo: any) => {
+  console.log('Failed:', errorInfo);
+};
 
 const save = async () => {
   console.log(tempId.value);
@@ -617,7 +609,7 @@ const fetchComponentData = async () => {
         //console.log(1,MicroCards);
         //console.log(2,state.microParts);
 
-
+        // PC端
         if (terminalType.value === 0) {
           //删除不存在的微件
           state.components[index] = state.components[index].filter(
@@ -649,6 +641,7 @@ const fetchComponentData = async () => {
               tempId: tempId.value,
             });
         }
+        // 移动端
         else if (terminalType.value === 1) {
           //删除不存在的微件
           state.components[index] = state.components[index].map((item) => {
@@ -807,24 +800,5 @@ onUnmounted(() => {
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   padding: 16px 24px;
-}
-
-.toolbar {
-
-  .setGridRow {
-
-    .ant-input-number {
-      margin-top: -2px;
-      margin-left: 12px;
-    }
-
-    label {
-      margin-left: 12px;
-    }
-  }
-
-  .ant-btn {
-    margin-left: 12px;
-  }
 }
 </style>
