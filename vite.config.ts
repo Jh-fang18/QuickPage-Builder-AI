@@ -7,9 +7,11 @@ import { resolve } from 'path' // 导入 path 模块的 resolve 函数
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue(), // 使用 Vue 插件
+    vue(), // 启用 Vue 插件
+    // 自动导入组件
+    // 该插件会自动导入组件，无需手动引入
     Components({
-      // 配置自动导入组件插件
+      dts: 'src/types/components.d.ts', // 生成的类型声明文件路径
       resolvers: [
         AntDesignVueResolver({
           // 使用 Ant Design Vue 解析器

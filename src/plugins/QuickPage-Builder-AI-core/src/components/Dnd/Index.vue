@@ -80,6 +80,8 @@ const DndPreview = defineAsyncComponent(() => import("./Preview.vue"))
 const DndPreviewMobile = defineAsyncComponent(() => import("./PreviewMobile.vue"))
 
 import type { AxiosInstance } from 'axios'
+import type { Key } from 'ant-design-vue/es/_util/type'
+import type { TreeProps } from 'ant-design-vue';
 
 // 增强的 proxy 类型
 interface CustomProxy {
@@ -393,15 +395,20 @@ const getNavigationList = async () => {
 }
 /** end **/
 
-const onExpand = (onExpandedKeys: string[]) => {
-  console.log("onExpand", onExpandedKeys);
+const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
+  console.log("onExpand", onExpandedKeys, info);
   // if not set autoExpandParent to false, if children expanded, parent can not collapse.
   // or, you can remove all expanded children keys.
-  expandedKeys.value = onExpandedKeys;
+  expandedKeys.value = onExpandedKeys.map(String); // Ensure all keys are strings
   autoExpandParent.value = false;
 }
 
-const onCheck = (onCheckedKeys: string[], info: { node: { eventKey: string } }) => {
+const onCheck = (checked: Key[] | { checked: Key[]; halfChecked: Key[] }, info: { node: { eventKey?: Key } }) => {
+  if (typeof info.node.eventKey !== 'string') {
+    console.error('Invalid eventKey:', info.node.eventKey);
+    return;
+  }
+  const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
   console.log("checkedKeys", onCheckedKeys);
   console.log("info", info);
   //临时记录选中模块 in store

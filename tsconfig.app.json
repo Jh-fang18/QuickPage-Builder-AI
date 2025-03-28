@@ -1,17 +1,22 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo", //
     /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "strict": true, // 严格模式
+    "noUnusedLocals": true, // 禁止未使用的变量
+    "noUnusedParameters": true, // 禁止未使用的参数
+    "noFallthroughCasesInSwitch": true, // 禁止 switch 语句中出现贯穿情况
+    "noUncheckedSideEffectImports": true, // 禁止未检查的副作用导入
+    "typeRoots": [
+      "./src/types", // 类型根目录
+      "./node_modules/@types"
+    ]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "src/types/**/*.d.ts" // 自定义类型声明文件
   ]
 }
