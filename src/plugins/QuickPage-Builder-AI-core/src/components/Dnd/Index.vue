@@ -79,28 +79,7 @@ import DndCore from "./Core/Index.vue"
 const DndPreview = defineAsyncComponent(() => import("./Preview.vue"))
 const DndPreviewMobile = defineAsyncComponent(() => import("./PreviewMobile.vue"))
 
-import type { AxiosInstance } from 'axios'
-import type { Key } from 'ant-design-vue/es/_util/type'
 import type { TreeProps } from 'ant-design-vue';
-
-// 增强的 proxy 类型
-interface CustomProxy {
-  $t: (key: string) => string;
-  $axios: AxiosInstance;
-  $message: {
-    success: (msg: string) => void;
-    error: (msg: string) => void;
-    warning: (msg: string) => void;
-  };
-  $confirm: (options: {
-    title: string;
-    content: string;
-    okText?: string;
-    cancelText?: string;
-    onOk: () => void;
-    onCancel?: () => void;
-  }) => void;
-}
 
 interface ComponentItem {
   title: string
@@ -160,7 +139,7 @@ const langPrefix = "management"
 const store = useStore()
 const route = useRoute()
 const instance = getCurrentInstance();
-const proxy = instance ? (instance.proxy as unknown as CustomProxy) : null; // 获取当前实例的代理对象
+const proxy = instance ? instance.proxy : null; // 获取当前实例的代理对象
 
 // 使用 useWindowSize 获取窗口宽度
 const { width: windowWidth } = useWindowSize()
@@ -185,7 +164,7 @@ const terminalType = ref(0) // 0: PC, 1: Mobile
 const isPreviewModel = ref(false)
 const editPreviewMobileModalVisible = ref(false)
 const editNavSenuSettingsModalVisible = ref(false)
-const expandedKeys = ref(["0-0", "0-1"])
+const expandedKeys = ref([""])
 const autoExpandParent = ref(true)
 
 const gridColumn = ref(24)
@@ -403,7 +382,7 @@ const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
   autoExpandParent.value = false;
 }
 
-const onCheck = (checked: Key[] | { checked: Key[]; halfChecked: Key[] }, info: { node: { eventKey?: Key } }) => {
+const onCheck: TreeProps['onCheck'] = (checked, info) => {
   if (typeof info.node.eventKey !== 'string') {
     console.error('Invalid eventKey:', info.node.eventKey);
     return;
@@ -483,7 +462,7 @@ const onCheck = (checked: Key[] | { checked: Key[]; halfChecked: Key[] }, info: 
   //console.log(state.activatedComponents);
 }
 
-const onSelect = <T>(selectedKeys: string[], info: T) => {
+const onSelect: TreeProps['onSelect'] = (selectedKeys, info) => {
   console.log(selectedKeys, info);
 }
 
@@ -717,9 +696,6 @@ onMounted(async () => {
     //获取组件数据
     await fetchComponentData();
 
-    //展开树列表
-    onExpand(expandedKeys.value);
-
     //设置树列表
     state.treeData = [
       {
@@ -735,6 +711,12 @@ onMounted(async () => {
         children: ContainersList.value,
       },
     ];
+
+    //展开树列表
+    expandedKeys.value = [
+      "0-0",
+      "0-1",
+    ]
 
   } catch (err) {
     console.error('初始化失败:', err)
