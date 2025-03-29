@@ -1,5 +1,5 @@
 import { Store } from 'vuex'
-import type { AxiosStatic } from 'axios'
+import type { AxiosInstance } from 'axios'
 import type { MessageApi } from 'ant-design-vue/es/message'
 import type { Confirm } from 'ant-design-vue/es/modal/confirm'
 
@@ -8,7 +8,7 @@ declare module '@vue/runtime-core' {
   export interface ComponentCustomProperties {
     $store: Store<State> // Vuex store
     $t: (key: string) => string // i18n
-    $axios: AxiosStatic // Axios 实例
+    $axios: AxiosInstance // Axios 实例
     $message: MessageApi // Ant Design Vue 消息提示
     $confirm: Confirm // Ant Design Vue 确认框
   }

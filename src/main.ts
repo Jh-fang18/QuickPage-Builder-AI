@@ -23,6 +23,4 @@ const app = createApp(App)
 // 挂载axios实例
 app.config.globalProperties.$axios = http
 
-app.use(i18n)
-  .use(Test)
-  .mount('#app')
+app.use(i18n).use(Test).mount('#app')
