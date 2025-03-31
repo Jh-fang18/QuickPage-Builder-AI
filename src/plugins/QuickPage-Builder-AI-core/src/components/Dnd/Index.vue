@@ -178,6 +178,8 @@ const tabsActiveKey = ref(0)
 const disabled = computed(() => {
   return !(formState.gridRow && formState.gridColumn);
 });
+
+// 微件列表
 const MicroCardsList = computed(() => {
   return (state.components[0] || []).map((item, index) => ({
     title: item.title,
@@ -185,18 +187,27 @@ const MicroCardsList = computed(() => {
   }))
 })
 
+// 容器列表
 const ContainersList = computed(() => {
   return (state.components[1] || []).map((item, index) => ({
     title: item.title,
     key: `0-1-${index}_${item.key}`
   }))
 })
+
+// 计算布局宽度
+const layoutWidth = computed(() => {
+  const baseWidth = (gridScale.value + gridPadding.value) * gridColumn.value - 20
+  return windowWidth.value < 1580 ? null : baseWidth
+})
+
 // 动态计算布局宽度
 const layoutStyle = computed(() => ({
   width: layoutWidth.value ? `${layoutWidth.value}px` : null,
   margin: layoutWidth.value ? '0 auto' : null
 }))
 
+// 根据宽度判断是否添加left距离
 const siderClass = computed(() => ({
   fixedToLeft: !!layoutWidth.value
 }))
@@ -204,16 +215,13 @@ const siderClass = computed(() => ({
 // 动态计算当前组件
 const currentComponent = computed(() => isPreviewModel.value ? DndPreview : DndCore)
 
-const layoutWidth = computed(() => {
-  const baseWidth = (gridScale.value + gridPadding.value) * gridColumn.value - 20
-  return windowWidth.value < 1580 ? null : baseWidth
-})
-
+// 动态获取当前被选组件
 const checkedKeys = computed({
   get: () => store.state.dnd.checkedKeys,
   set: (val) => store.commit("dnd/PUSH_CHECKEDKEYS", val)
 })
 
+// 响应式状态
 const state = reactive({
   treeData: [] as treeDataItem[],
   components: [] as ComponentItem[][],
@@ -243,6 +251,7 @@ async function handleApiRequest<T>(apiCall: () => Promise<T>, errorMessage: stri
   }
 }
 
+// 表单提交失败回调
 const onFinishFailed = (errorInfo: any) => {
   console.log('Failed:', errorInfo);
 };
@@ -350,6 +359,17 @@ const getSelfServiceItemList = async (itemType: number, terminalType: number) =>
   }
 }
 
+const getNavigationList = async () => {
+  if (proxy) {
+    return await proxy.$axios.post("/self/homePageInfo/getNavigationList", {
+      tempId: tempId.value,
+    });
+  } else {
+    console.error('Proxy is null');
+    return null;
+  }
+}
+
 const updateSelfServiceItem = async (itemData: any) => {
   if (proxy) {
     return await proxy.$axios.post(
@@ -362,18 +382,9 @@ const updateSelfServiceItem = async (itemData: any) => {
   }
 }
 
-const getNavigationList = async () => {
-  if (proxy) {
-    return await proxy.$axios.post("/self/homePageInfo/getNavigationList", {
-      tempId: tempId.value,
-    });
-  } else {
-    console.error('Proxy is null');
-    return null;
-  }
-}
 /** end **/
 
+// 展开节点
 const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
   console.log("onExpand", onExpandedKeys, info);
   // if not set autoExpandParent to false, if children expanded, parent can not collapse.
@@ -382,6 +393,7 @@ const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
   autoExpandParent.value = false;
 }
 
+// 选中节点，添加组件进入画布
 const onCheck: TreeProps['onCheck'] = (checked, info) => {
   if (typeof info.node.eventKey !== 'string') {
     console.error('Invalid eventKey:', info.node.eventKey);
@@ -462,10 +474,12 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
   //console.log(state.activatedComponents);
 }
 
+// 选中节点
 const onSelect: TreeProps['onSelect'] = (selectedKeys, info) => {
   console.log(selectedKeys, info);
 }
 
+// 预览
 const preview = () => {
   let _workbenchData = {
     contentId: contentId.value,
@@ -489,6 +503,7 @@ const preview = () => {
   isPreviewModel.value = true;
 }
 
+// 取消预览
 const cancel = () => {
   isPreviewModel.value = false;
 }
@@ -507,6 +522,7 @@ const updateList = () => {
   });
 }
 
+// 显示确认框
 const showConfirm = (type: string, keys: string[], actIndex: number = 0) => {
   if (proxy) {
     proxy.$confirm({
@@ -524,6 +540,7 @@ const showConfirm = (type: string, keys: string[], actIndex: number = 0) => {
   }
 }
 
+// 删除组件
 const removeComponent = (type: string, keys: string[], actIndex: number = 0) => {
   //console.log(actIndex);
   let _arr = keys[2].split("_");
@@ -541,19 +558,20 @@ const removeComponent = (type: string, keys: string[], actIndex: number = 0) => 
 // 更新组件列表
 const updateComponentItem = (
   item: ComponentItem,
-  cardData: CardData,
+  minRowSpan: number,
+  minColSpan: number,
   selfServiceData: SelfServiceData
-) => {
-  const { minRowSpan, minColSpan } = cardData.data();
-  item.minWidth = minRowSpan;
-  item.minHeight = minColSpan;
-  item.width = minRowSpan;
-  item.height = minColSpan;
-  item.editTitle = false;
-  item.positionX = 0;
-  item.positionY = 0;
-  item.selfServiceData = selfServiceData;
-};
+): ComponentItem => ({
+  ...item,
+  minWidth: minRowSpan,
+  minHeight: minColSpan,
+  width: minRowSpan,
+  height: minColSpan,
+  editTitle: false,
+  positionX: 0,
+  positionY: 0,
+  selfServiceData
+});
 
 // 新增数据获取方法
 const fetchComponentData = async () => {
@@ -600,9 +618,10 @@ const fetchComponentData = async () => {
           //删除不存在的微件
           state.components[index] = state.components[index].filter(
             (item, index) => {
-              const microCard = item.url && _MicroCards[item.url];
+              const microCard: CardData = item.url && _MicroCards[item.url];
               if (microCard) {
-                updateComponentItem(item, microCard, dataList[index]);
+                const { minRowSpan, minColSpan } = microCard.data();
+                Object.assign(item, updateComponentItem(item, minRowSpan, minColSpan, dataList[index]));
               }
               return !!microCard;
             }
