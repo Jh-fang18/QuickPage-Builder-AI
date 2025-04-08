@@ -2,7 +2,7 @@ import { defineConfig } from 'vite' // 导入 Vite 的配置函数
 import vue from '@vitejs/plugin-vue' // 导入 Vue 插件
 import Components from 'unplugin-vue-components/vite' // 导入自动导入组件插件
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers' // 导入 Ant Design Vue 解析器
-import { resolve } from 'path' // 导入 path 模块的 resolve 函数
+import path from 'path' // 导入 path 模块
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -22,12 +22,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve('src'), // 源码根目录
-      '@img': resolve('src/assets/img'), // 图片
-      '@libs': resolve('src/libs'), // 本地库
-      '@plugins': resolve('src/plugins'), // 本地插件
-      '@cp': resolve('src/components'), // 公共组件
-      '@views': resolve('src/views') // 路由组件
+      '@': path.resolve(__dirname, 'src'), // 源码根目录
+      '@img': path.resolve(__dirname, 'src/assets/img'), // 图片
+      '@libs': path.resolve(__dirname, 'src/libs'), // 本地库
+      '@plugins': path.resolve(__dirname, 'src/plugins'), // 本地插件
+      '@cp': path.resolve(__dirname, 'src/components'), // 公共组件
+      '@views': path.resolve(__dirname, 'src/views') // 路由组件
     }
   }
 })

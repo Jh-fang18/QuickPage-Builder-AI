@@ -1,26 +1,6 @@
-interface SelfServiceData {
-  id: number
-  itemName: string
-  url: string
-}
+import type { ComponentItem } from '../../QuickPage-Builder-AI-core/src/types/dnd'
 
-interface TempInfo {
-  title: string
-  key: string
-  url: string
-  minWidth: number
-  minHeight: number
-  width: number
-  height: number
-  editTitle: boolean
-  positionX: number
-  positionY: number
-  selfServiceData: SelfServiceData
-  treeKey: string
-  ccs: string
-}
-
-const getTempInfo: TempInfo[] = [
+const getTempInfo: ComponentItem[] = [
   {
     title: 'Bottomfiling',
     key: '1',
@@ -66,7 +46,7 @@ export default {
     return {
       status: 200,
       message: 'success',
-      data: { dataList: getTempInfo }
+      data: { tempId: 1992, dataList: getTempInfo }
     }
   }
 }

@@ -112,7 +112,7 @@ const _MicroCards: Record<string, any> = {
 };
 
 // 响应式状态
-const loading = ref(false);
+const loading = ref(false)
 const tempId = ref("")
 const contentId = ref(0)
 const navigationId = ref(0)
@@ -193,11 +193,12 @@ const formState = reactive<FormState>({
 // 方法
 
 // proxy 为空时的错误提示
-async function handleApiRequest<T>(apiCall: () => Promise<T>, errorMessage: string): Promise<T | null> {
+const handleApiRequest = async <T>(apiCall: () => Promise<T>, errorMessage: string): Promise<T | null> => {
   if (!proxy) {
     console.error('Proxy is null');
     return null;
   }
+
   try {
     return await apiCall();
   } catch (error: unknown) {
@@ -212,50 +213,67 @@ const onFinishFailed = (errorInfo: any) => {
   console.log('Failed:', errorInfo);
 };
 
+/** start 保存操作 **/
+// save时获取基本数据
+const createPayload = () => ({
+  id: contentId.value || 0,
+  tempId: tempId.value,
+  content: JSON.stringify(state.activatedComponents) || "[]",
+  navigationId: Number(navigationId.value) || 0,
+});
+
+// save时更新响应数据, contentId, oldContent
+const updateContentResponseData = (_contentId: number, _oldContent: string): void => {
+  contentId.value = _contentId;
+  oldContent.value = _oldContent || "[]";
+}
+
+// 保存
 const save = async () => {
-  console.log(tempId.value);
+  //console.log(tempId.value);
   if (!tempId.value) {
     proxy?.$message.warning("请先选择模板！");
     return;
   } else return handleApiRequest(async () => {
-    const _content = JSON.stringify(state.activatedComponents);
-    oldContent.value = _content || "[]";
-    const _navigationId = Number(navigationId.value || 0);
-    const _obj = {
-      id: contentId.value || 0,
-      tempId: tempId.value,
-      content: _content,
-    };
+    const _obj = createPayload(); // 获取基本数据
 
     try {
-      const res = await proxy?.$axios
+      const res = await proxy!.$axios
         .post(
           "/self/homePageInfo/saveTempInfo",
-          _navigationId
+          _obj.navigationId
             ? {
               ..._obj,
-              navigationId: _navigationId,
+              navigationId: _obj.navigationId,
             }
             : _obj
         )
-      proxy!.$message.success(proxy!.$t(`${langPrefix}.addMessage`));
-      if (res?.data.id) contentId.value = res?.data.id;
+
+      if (res?.data.id) {
+        proxy!.$message.success(proxy!.$t(`${langPrefix}.addMessage`));
+        updateContentResponseData(res?.data.id, _obj.content || "[]");
+      }
+
       return res;
     } catch (error: unknown) {
-      console.error('保存操作失败:', error)
-      proxy!.$message.error('保存操作失败') // 新增错误提示
+      //console.error('保存操作失败:', error)
+      proxy!.$message.error('保存操作失败') //
       return null;
     }
 
   }, '保存操作失败');
 
 }
+/** end **/
 
 /** start 获取页面输数据相关 **/
 const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
   return handleApiRequest(async () => {
     try {
-      const res = await proxy?.$axios.post("/self/homePageInfo/getTempInfo", data);
+      const res = await proxy!.$axios.post("/self/homePageInfo/getTempInfo", data);
+
+      if (!res?.data?.tempId) return {}// 如果没有数据，直接返回
+
       let { content, id } = res?.data || {};
 
       if (content) state.activatedComponents = JSON.parse(content);
@@ -304,15 +322,22 @@ const getTempInfo = (data: { tempId: string | number; navigationId?: number }) =
 }
 
 const getSelfServiceItemList = async (itemType: number, terminalType: number) => {
-  if (proxy) {
-    return await proxy.$axios.post("/self/item/getSelfServiceItemList", {
-      data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
-      page: { pageSize: 6600, currentPage: 1 }, //分页条件
-    });
-  } else {
-    console.error('Proxy is null');
-    return null;
-  }
+  return handleApiRequest(async () => {
+    try {
+      const res = await proxy!.$axios.post("/self/item/getSelfServiceItemList", {
+        data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
+        page: { pageSize: 6600, currentPage: 1 }, //分页条件
+      });
+
+      if (!res?.data?.dataList || res?.data?.dataList.length === 0) return {}// 如果没有数据，直接返回
+
+      return res;
+    } catch (error: unknown) {
+      console.error('获取微件数据失败:', error)
+      proxy?.$message.error('数据加载失败') // 新增错误提示
+      return null;
+    }
+  }, '获取微件数据失败')
 }
 
 const getNavigationList = async () => {
@@ -469,7 +494,7 @@ const updateList = () => {
   getNavigationList().then((res) => {
     state.tabs = (res && Array.isArray(res.data) ? res.data : []) || [];
     tabsActiveKey.value = 0;
-    navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
+    navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : 0;
 
     getTempInfo({
       tempId: Number(tempId.value),
@@ -619,7 +644,7 @@ const fetchComponentData = async () => {
           getNavigationList().then((res) => {
             state.tabs = res?.data || [];
             tabsActiveKey.value = 0;
-            navigationId.value = state.tabs[0] ? state.tabs[0].id : 0;
+            navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : 0;
 
             if (navigationId.value <= 0) {
               proxy?.$axios
@@ -632,7 +657,7 @@ const fetchComponentData = async () => {
                 .then(() => {
                   getNavigationList().then((res) => {
                     state.tabs = res?.data || [];
-                    navigationId.value = state.tabs[0] ? state.tabs[0].id : -1;
+                    navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : -1;
 
                     if (state.tabs.length > 0)
                       getTempInfo({
