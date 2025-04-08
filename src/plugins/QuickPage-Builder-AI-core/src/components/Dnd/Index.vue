@@ -67,72 +67,28 @@
 </template>
 
 <script lang="ts" setup>
-//导入已有组件
+// 导入已有组件
 import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import * as MicroCards from "../MicroParts/index.ts"
 
-//导入自定义组件
+// 导入自定义组件
 import DndCore from "./Core/Index.vue"
 const DndPreview = defineAsyncComponent(() => import("./Preview.vue"))
 const DndPreviewMobile = defineAsyncComponent(() => import("./PreviewMobile.vue"))
 
-import type { TreeProps } from 'ant-design-vue';
+// 导入类型
+import type { TreeProps, TabsProps } from 'ant-design-vue';
+import type {
+  ComponentItem,
+  SelfServiceData,
+  DataItem,
+  CardData,
+  FormState
+} from '../../types/dnd'
 
-interface ComponentItem {
-  title: string
-  key: string
-  url?: string
-  minWidth: number
-  minHeight: number
-  width: number
-  height: number
-  editTitle: boolean
-  positionX: number
-  positionY: number
-  selfServiceData: SelfServiceData
-  treeKey: string
-  ccs: string
-}
-
-interface SelfServiceData {
-  id: number
-  itemName: string
-  url: string
-}
-
-interface TabItem {
-  id: number;
-  title: string;
-}
-
-interface DemoItem {
-  id: number
-  itemName: string
-  url: string
-}
-
-interface FormState {
-  gridRow: number;
-  gridColumn: number;
-}
-
-interface treeDataItem {
-  title: string
-  key: string,
-  disabled?: boolean,
-  children: { title: string; key: string }[],
-}
-
-//微件基本信息获取函数类型声明
-interface CardData {
-  data: () => {
-    minRowSpan: number
-    minColSpan: number
-  }
-}
 
 // 基础数据获取
 const langPrefix = "management"
@@ -149,7 +105,7 @@ const { microParts } = defineProps({
   microParts: Object
 });
 
-//合并微件
+// 合并微件
 const _MicroCards: Record<string, any> = {
   ...MicroCards,
   ...microParts
@@ -166,7 +122,6 @@ const editPreviewMobileModalVisible = ref(false)
 const editNavSenuSettingsModalVisible = ref(false)
 const expandedKeys = ref([""])
 const autoExpandParent = ref(true)
-
 const gridColumn = ref(24)
 const gridRow = ref(36)
 const gridScale = ref(30)
@@ -175,6 +130,7 @@ const oldContent = ref("[]")
 const tabsActiveKey = ref(0)
 
 // 计算属性
+// 表单提交按钮是否禁用
 const disabled = computed(() => {
   return !(formState.gridRow && formState.gridColumn);
 });
@@ -223,10 +179,10 @@ const checkedKeys = computed({
 
 // 响应式状态
 const state = reactive({
-  treeData: [] as treeDataItem[],
+  treeData: [] as TreeProps['treeData'],
   components: [] as ComponentItem[][],
   activatedComponents: [] as ComponentItem[],
-  tabs: [] as TabItem[],
+  tabs: [] as TabsProps[],
 })
 
 const formState = reactive<FormState>({
@@ -573,7 +529,7 @@ const updateComponentItem = (
   selfServiceData
 });
 
-// 新增数据获取方法
+// 数据获取方法
 const fetchComponentData = async () => {
   tempId.value = String(route.query.tempIdQuery) || "tmp";
   terminalType.value = Number(route.query.terminalTypeQuery) || 0;
@@ -587,7 +543,7 @@ const fetchComponentData = async () => {
       if (!res) return;
 
       (res || []).map((item, index) => {
-        let dataList: DemoItem[] = item?.data?.dataList || [];
+        let dataList: DataItem[] = item?.data?.dataList || [];
         //console.log(dataList);
 
         //获取组件基本信息
@@ -706,13 +662,13 @@ const fetchComponentData = async () => {
     });
 };
 
-//生命周期
+// 生命周期
 onMounted(async () => {
-  //初始化
+  // 初始化
   loading.value = true;
   try {
 
-    //获取组件数据
+    // 获取组件数据
     await fetchComponentData();
 
     //设置树列表

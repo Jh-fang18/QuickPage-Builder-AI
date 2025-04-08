@@ -1,0 +1,63 @@
+/** 可拖拽组件的基础元数据 */
+export interface ComponentItem {
+  /** 组件显示名称 */
+  title: string
+  /** 组件唯一标识符（格式：分类ID-组件ID） */
+  key: string
+  /** 组件对应的Vue组件路径（可选） */
+  url?: string
+  /** 组件最小宽度（栅格单位） */
+  minWidth: number
+  /** 组件最小高度（栅格单位） */
+  minHeight: number
+  /** 组件当前宽度（栅格单位） */
+  width: number
+  /** 组件当前高度（栅格单位） */
+  height: number
+  /** 是否允许编辑标题 */
+  editTitle: boolean
+  /** X轴位置（栅格单位） */
+  positionX: number
+  /** Y轴位置（栅格单位） */
+  positionY: number
+  /** 关联的自助服务数据 */
+  selfServiceData: SelfServiceData
+  /** 树形结构中的唯一键（格式：父节点ID-当前节点ID） */
+  treeKey: string
+  /** CSS Grid布局坐标（格式：row-start/column-start/row-end/column-end） */
+  ccs: string
+}
+
+/** 自助服务数据项 */
+export interface SelfServiceData {
+  /** 服务项ID */
+  id: number
+  /** 服务项名称 */
+  itemName: string
+  /** 服务对应的API端点 */
+  url: string
+}
+
+// 数据项类型
+export interface DataItem {
+  id: number
+  itemName: string
+  url: string
+}
+
+// 表单数据类型，控制画布大小数据
+export interface FormState {
+  gridRow: number
+  gridColumn: number
+}
+
+/** 微件卡片数据规范（用于动态加载组件） */
+export interface CardData {
+  /** 获取组件布局约束的方法 */
+  data: () => {
+    /** 最小行跨度 */
+    minRowSpan: number
+    /** 最小列跨度 */
+    minColSpan: number
+  }
+}
