@@ -1,3 +1,5 @@
+import type { AuthInfo } from './global'
+
 /** 可拖拽组件的基础元数据 */
 export interface ComponentItem {
   /** 组件显示名称 */
@@ -29,7 +31,7 @@ export interface ComponentItem {
 }
 
 /** 自助服务数据项 */
-export interface SelfServiceData {
+export interface SelfServiceDataItem {
   /** 服务项ID */
   id: number
   /** 服务项名称 */
@@ -38,16 +40,14 @@ export interface SelfServiceData {
   url: string
 }
 
-// 数据项类型
-export interface DataItem {
-  id: number
-  itemName: string
-  url: string
-}
-
-// 表单数据类型，控制画布大小数据
+/**
+ * 表单状态接口
+ * 用于管理画布网格布局的配置状态
+ */
 export interface FormState {
+  /** 画布行数（垂直方向栅格数） */
   gridRow: number
+  /** 画布列数（水平方向栅格数） */
   gridColumn: number
 }
 
@@ -60,4 +60,23 @@ export interface CardData {
     /** 最小列跨度 */
     minColSpan: number
   }
+}
+
+export interface TempInfoData extends AuthInfo {
+  /** 模板ID */
+  tempId: number
+  /** 组件列表 */
+  dataList: {
+    id: number
+    content: string
+  }
+  /** 模板ID */
+}
+
+export interface SelfServiceData extends AuthInfo {
+  /** 模板ID */
+  tempId: number
+  /** 组件列表 */
+  dataList: SelfServiceDataItem[]
+  /** 模板ID */
 }

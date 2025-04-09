@@ -24,7 +24,11 @@ http.interceptors.request.use(
 // 响应拦截器
 http.interceptors.response.use(
   (response) => {
-    // 对响应数据做些什么
+    // 当返回状态不是200时，抛出错误，可根据业务需求修改状态码判断逻辑
+    if (response?.status !== 200) {
+      return Promise.reject(response?.statusText)
+    }
+
     return response.data
   },
   (error) => {

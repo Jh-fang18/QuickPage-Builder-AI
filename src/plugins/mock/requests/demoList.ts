@@ -1,3 +1,15 @@
+import type { AuthInfo } from '../../QuickPage-Builder-AI-core/src/types/global'
+
+const authInfo: AuthInfo = {
+  token: '123456',
+  expires: 1677721600000,
+  userInfo: {
+    userId: '1',
+    userName: 'admin',
+    roles: ['admin']
+  }
+}
+
 interface DemoItem {
   id: number
   itemName: string
@@ -20,9 +32,8 @@ const demoList: DemoItem[] = [
 export default {
   'post|/self/item/getSelfServiceItemList': () => {
     return {
-      status: 200,
-      message: 'success',
-      data: { dataList: demoList }
+      ...authInfo,
+      dataList: demoList
     }
   }
 }

@@ -84,13 +84,12 @@ import type { TreeProps, TabsProps } from 'ant-design-vue';
 import type {
   ComponentItem,
   SelfServiceData,
-  DataItem,
   CardData,
-  FormState
+  FormState,
+  TempInfoData
 } from '../../types/dnd'
 
-
-// 基础数据获取
+// 页面基础数据获取
 const langPrefix = "management"
 const store = useStore()
 const route = useRoute()
@@ -100,7 +99,7 @@ const proxy = instance ? instance.proxy : null; // 获取当前实例的代理�
 // 使用 useWindowSize 获取窗口宽度
 const { width: windowWidth } = useWindowSize()
 
-//属性
+// props 接收数据
 const { microParts } = defineProps({
   microParts: Object
 });
@@ -129,7 +128,7 @@ const gridPadding = ref(20)
 const oldContent = ref("[]")
 const tabsActiveKey = ref(0)
 
-// 计算属性
+/** start 计算属性 */
 // 表单提交按钮是否禁用
 const disabled = computed(() => {
   return !(formState.gridRow && formState.gridColumn);
@@ -176,8 +175,9 @@ const checkedKeys = computed({
   get: () => store.state.dnd.checkedKeys,
   set: (val) => store.commit("dnd/PUSH_CHECKEDKEYS", val)
 })
+/** end */
 
-// 响应式状态
+/** start 响应式状态 */
 const state = reactive({
   treeData: [] as TreeProps['treeData'],
   components: [] as ComponentItem[][],
@@ -189,10 +189,16 @@ const formState = reactive<FormState>({
   gridRow: gridRow.value,
   gridColumn: gridColumn.value,
 });
+/** end */
 
-// 方法
 
-// proxy 为空时的错误提示
+/* ====================== 核心方法 ====================== */
+/**
+ * 封装API请求处理
+ * @param apiCall API调用函数
+ * @param errorMessage 系统错误提示信息 
+ * @returns Promise包装的响应数据或null
+ */
 const handleApiRequest = async <T>(apiCall: () => Promise<T>, errorMessage: string): Promise<T | null> => {
   if (!proxy) {
     console.error('Proxy is null');
@@ -213,7 +219,7 @@ const onFinishFailed = (errorInfo: any) => {
   console.log('Failed:', errorInfo);
 };
 
-/** start 保存操作 **/
+/** start 保存相关操作 */
 // save时获取基本数据
 const createPayload = () => ({
   id: contentId.value || 0,
@@ -237,106 +243,96 @@ const save = async () => {
   } else return handleApiRequest(async () => {
     const _obj = createPayload(); // 获取基本数据
 
-    try {
-      const res = await proxy!.$axios
-        .post(
-          "/self/homePageInfo/saveTempInfo",
-          _obj.navigationId
-            ? {
-              ..._obj,
-              navigationId: _obj.navigationId,
-            }
-            : _obj
-        )
+    const res = await proxy!.$axios
+      .post(
+        "/self/homePageInfo/saveTempInfo",
+        _obj.navigationId
+          ? {
+            ..._obj,
+            navigationId: _obj.navigationId,
+          }
+          : _obj
+      )
 
-      if (res?.data.id) {
-        proxy!.$message.success(proxy!.$t(`${langPrefix}.addMessage`));
-        updateContentResponseData(res?.data.id, _obj.content || "[]");
-      }
-
-      return res;
-    } catch (error: unknown) {
-      //console.error('保存操作失败:', error)
-      proxy!.$message.error('保存操作失败') //
-      return null;
+    if (res?.data.id) {
+      proxy!.$message.success(proxy!.$t(`${langPrefix}.addMessage`));
+      updateContentResponseData(res?.data.id, _obj.content || "[]");
     }
+
+    return res;
 
   }, '保存操作失败');
 
 }
 /** end **/
 
-/** start 获取页面输数据相关 **/
+/** start 获取页面输数据相关 */
 const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
   return handleApiRequest(async () => {
-    try {
-      const res = await proxy!.$axios.post("/self/homePageInfo/getTempInfo", data);
+    const res: TempInfoData = await proxy!.$axios.post("/self/homePageInfo/getTempInfo", data);
 
-      if (!res?.data?.tempId) return {}// 如果没有数据，直接返回
-
-      let { content, id } = res?.data || {};
-
-      if (content) state.activatedComponents = JSON.parse(content);
-      else state.activatedComponents = [];
-
-      //保留原始content用于判断是否有过修改
-      oldContent.value = content || "[]";
-
-      //设置画布高度
-      if (state.activatedComponents && state.activatedComponents.length > 0) {
-        let _gridRow = state.activatedComponents[
-          state.activatedComponents.length - 1
-        ]["ccs"]
-          .split("/")
-          .map((item) => Number(item))[2];
-        gridRow.value = _gridRow < 36 ? 36 : _gridRow;
-      }
-
-      if (id) contentId.value = id;
-      else contentId.value = 0;
-
-      //console.log(state.activatedComponents);
-      //console.log(MicroCardsList);
-
-      //临时记录选中模块 in store
-      store.commit("dnd/PUSH_CHECKEDKEYS", [
-        ...(MicroCardsList.value || []).filter((item) =>
-          (state.activatedComponents || []).find(
-            (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
-          )
-        ).map((item) => item.key),
-        ...(ContainersList.value || []).filter((item) =>
-          (state.activatedComponents || []).find(
-            (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
-          )
-        ).map((item) => item.key),
-      ]);
-
-      return res;
-    } catch (error: unknown) {
-      console.error('获取页面数据失败:', error)
-      proxy?.$message.error('数据加载失败') // 新增错误提示
-      return null;
+    // res内容判断，如果没有数据或者提示错误，直接返回
+    if (!res?.tempId && !res?.dataList) {
+      proxy?.$message.error('数据加载失败')
+      return res
     }
+
+    let { content, id } = res?.dataList || {};
+
+    if (content) state.activatedComponents = JSON.parse(content);
+    else state.activatedComponents = [];
+
+    //保留原始content用于判断是否有过修改
+    oldContent.value = content || "[]";
+
+    //设置画布高度
+    if (state.activatedComponents && state.activatedComponents.length > 0) {
+      let _gridRow = state.activatedComponents[
+        state.activatedComponents.length - 1
+      ]["ccs"]
+        .split("/")
+        .map((item) => Number(item))[2];
+      gridRow.value = _gridRow < 36 ? 36 : _gridRow;
+    }
+
+    if (id) contentId.value = id;
+    else contentId.value = 0;
+
+    //console.log(state.activatedComponents);
+    //console.log(MicroCardsList);
+
+    //临时记录选中模块 in store
+    store.commit("dnd/PUSH_CHECKEDKEYS", [
+      ...(MicroCardsList.value || []).filter((item) =>
+        (state.activatedComponents || []).find(
+          (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
+        )
+      ).map((item) => item.key),
+      ...(ContainersList.value || []).filter((item) =>
+        (state.activatedComponents || []).find(
+          (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
+        )
+      ).map((item) => item.key),
+    ]);
+
+    return res;
+
   }, '获取页面数据失败');
 }
 
 const getSelfServiceItemList = async (itemType: number, terminalType: number) => {
   return handleApiRequest(async () => {
-    try {
-      const res = await proxy!.$axios.post("/self/item/getSelfServiceItemList", {
-        data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
-        page: { pageSize: 6600, currentPage: 1 }, //分页条件
-      });
+    const res: SelfServiceItem = await proxy!.$axios.post("/self/item/getSelfServiceItemList", {
+      data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
+      page: { pageSize: 6600, currentPage: 1 }, //分页条件
+    });
 
-      if (!res?.data?.dataList || res?.data?.dataList.length === 0) return {}// 如果没有数据，直接返回
-
-      return res;
-    } catch (error: unknown) {
-      console.error('获取微件数据失败:', error)
-      proxy?.$message.error('数据加载失败') // 新增错误提示
-      return null;
+    if (!res?.dataList || res?.dataList.length === 0) {
+      proxy?.$message.error('数据加载失败')
+      return res
     }
+
+    return res;
   }, '获取微件数据失败')
 }
 
@@ -568,7 +564,7 @@ const fetchComponentData = async () => {
       if (!res) return;
 
       (res || []).map((item, index) => {
-        let dataList: DataItem[] = item?.data?.dataList || [];
+        let dataList: SelfServiceData[] = item?.data?.dataList || [];
         //console.log(dataList);
 
         //获取组件基本信息
