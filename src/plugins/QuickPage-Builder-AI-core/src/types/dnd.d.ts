@@ -1,5 +1,15 @@
 import type { AuthInfo } from './global'
 
+/** 自助服务数据项 */
+export interface SelfServiceDataItem {
+  /** 服务项ID */
+  id: number
+  /** 服务项名称 */
+  itemName: string
+  /** 服务对应的API端点 */
+  url: string
+}
+
 /** 可拖拽组件的基础元数据 */
 export interface ComponentItem {
   /** 组件显示名称 */
@@ -23,21 +33,11 @@ export interface ComponentItem {
   /** Y轴位置（栅格单位） */
   positionY: number
   /** 关联的自助服务数据 */
-  selfServiceData: SelfServiceData
+  selfServiceData: SelfServiceDataItem
   /** 树形结构中的唯一键（格式：父节点ID-当前节点ID） */
   treeKey: string
   /** CSS Grid布局坐标（格式：row-start/column-start/row-end/column-end） */
   ccs: string
-}
-
-/** 自助服务数据项 */
-export interface SelfServiceDataItem {
-  /** 服务项ID */
-  id: number
-  /** 服务项名称 */
-  itemName: string
-  /** 服务对应的API端点 */
-  url: string
 }
 
 /**
@@ -74,8 +74,6 @@ export interface TempInfoData extends AuthInfo {
 }
 
 export interface SelfServiceData extends AuthInfo {
-  /** 模板ID */
-  tempId: number
   /** 组件列表 */
   dataList: SelfServiceDataItem[]
   /** 模板ID */

@@ -1,5 +1,5 @@
-// import type { ComponentItem } from '../../QuickPage-Builder-AI-core/src/types/dnd'
 import type { AuthInfo } from '../../QuickPage-Builder-AI-core/src/types/global'
+import type { TempInfoData } from '../../QuickPage-Builder-AI-core/src/types/dnd'
 
 const authInfo: AuthInfo = {
   token: '123456',
@@ -9,6 +9,16 @@ const authInfo: AuthInfo = {
     userName: 'admin',
     roles: ['admin']
   }
+}
+const TempInfo: TempInfoData = {
+  ...authInfo,
+  tempId: 1,
+  dataList: [
+    {
+      id: 1,
+      content: '[]'
+    }
+  ]
 }
 // const getTempInfo: ComponentItem[] = [
 //   {
@@ -54,7 +64,7 @@ const authInfo: AuthInfo = {
 export default {
   'post|/self/homePageInfo/getTempInfo': () => {
     return {
-      ...authInfo
+      ...TempInfo
     }
   }
 }

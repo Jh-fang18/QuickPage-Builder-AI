@@ -84,6 +84,7 @@ import type { TreeProps, TabsProps } from 'ant-design-vue';
 import type {
   ComponentItem,
   SelfServiceData,
+  SelfServiceDataItem,
   CardData,
   FormState,
   TempInfoData
@@ -199,7 +200,7 @@ const formState = reactive<FormState>({
  * @param errorMessage 系统错误提示信息 
  * @returns Promise包装的响应数据或null
  */
-const handleApiRequest = async <T>(apiCall: () => Promise<T>, errorMessage: string): Promise<T | null> => {
+const handleApiRequest = async <T>(apiCall: () => Promise<T>, errorMessage: string = "操作失败"): Promise<T | null> => {
   if (!proxy) {
     console.error('Proxy is null');
     return null;
@@ -273,7 +274,7 @@ const getTempInfo = (data: { tempId: string | number; navigationId?: number }) =
 
     // res内容判断，如果没有数据或者提示错误，直接返回
     if (!res?.tempId && !res?.dataList) {
-      proxy?.$message.error('数据加载失败')
+      proxy?.$message.error('没有TempId数据加载失败')
       return res
     }
 
@@ -322,7 +323,7 @@ const getTempInfo = (data: { tempId: string | number; navigationId?: number }) =
 
 const getSelfServiceItemList = async (itemType: number, terminalType: number) => {
   return handleApiRequest(async () => {
-    const res: SelfServiceItem = await proxy!.$axios.post("/self/item/getSelfServiceItemList", {
+    const res: SelfServiceData = await proxy!.$axios.post("/self/item/getSelfServiceItemList", {
       data: { itemType: itemType, terminalType: Number(terminalType) }, //筛选条件
       page: { pageSize: 6600, currentPage: 1 }, //分页条件
     });
@@ -537,7 +538,7 @@ const updateComponentItem = (
   item: ComponentItem,
   minRowSpan: number,
   minColSpan: number,
-  selfServiceData: SelfServiceData
+  selfServiceData: SelfServiceDataItem
 ): ComponentItem => ({
   ...item,
   minWidth: minRowSpan,
@@ -564,7 +565,7 @@ const fetchComponentData = async () => {
       if (!res) return;
 
       (res || []).map((item, index) => {
-        let dataList: SelfServiceData[] = item?.data?.dataList || [];
+        let dataList: SelfServiceDataItem[] = item?.dataList || [];
         //console.log(dataList);
 
         //获取组件基本信息
@@ -580,7 +581,7 @@ const fetchComponentData = async () => {
             editTitle: false,
             positionX: 0,
             positionY: 0,
-            selfServiceData: {} as SelfServiceData,
+            selfServiceData: {} as SelfServiceDataItem,
             treeKey: '',
             ccs: '',
           };
