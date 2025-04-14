@@ -13,12 +13,10 @@ const authInfo: AuthInfo = {
 const TempInfo: TempInfoData = {
   ...authInfo,
   tempId: 1,
-  dataList: [
-    {
-      id: 1,
-      content: '[]'
-    }
-  ]
+  dataList: {
+    id: 1,
+    content: '[]'
+  }
 }
 // const getTempInfo: ComponentItem[] = [
 //   {

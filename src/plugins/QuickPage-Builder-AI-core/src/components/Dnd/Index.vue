@@ -263,7 +263,6 @@ const save = async () => {
     return res;
 
   }, '保存操作失败');
-
 }
 /** end **/
 
@@ -359,8 +358,41 @@ const updateSelfServiceItem = async (itemData: any) => {
     return null;
   }
 }
-
 /** end **/
+
+/** start component相关操作 */
+// 添加组件到画布
+const addComponent = (component: ComponentItem) => {
+  if (!component) return;
+  state.activatedComponents.push(component);
+}
+/** end */
+
+//** start tree组件相关操作 */
+/** 从选中列表中添加指定节点的key 
+ * 注意：此函数会直接修改外部变量checkedKeys，而不是返回新的数组。
+ * @param checked 当前选中状态
+ * @param info 节点信息
+ */
+const addCheckedKeys: TreeProps['onCheck'] = (checked, info) => {
+  if (!checked || !info?.node?.eventKey) return;
+  const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
+  checkedKeys.value = [...onCheckedKeys];
+}
+/** 
+ * 从选中列表中删除指定节点的key
+ * 注意：此函数会直接修改外部变量checkedKeys，而不是返回新的数组。
+ * @param checked 当前选中状态
+ * @param info 节点信息
+ */
+const deleteCheckedKeys: TreeProps['onCheck'] = (checked, info) => {
+  if (!checked || !info?.node?.eventKey) return;
+  const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
+  checkedKeys.value = onCheckedKeys.filter(
+    (item) => item !== info.node.eventKey
+  );
+}
+/** end */
 
 // 展开节点
 const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
@@ -374,79 +406,88 @@ const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
 // 选中节点，添加组件进入画布
 const onCheck: TreeProps['onCheck'] = (checked, info) => {
   if (typeof info.node.eventKey !== 'string') {
-    console.error('Invalid eventKey:', info.node.eventKey);
+    console.error('Invalid eventKey type:', info.node.eventKey);
     return;
   }
+
+  if (!info.node.eventKey.includes("-")) {
+    console.error('Invalid eventKey format:', info.node.eventKey);
+    return;
+  }
+
   const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
   console.log("checkedKeys", onCheckedKeys);
   console.log("info", info);
-  //临时记录选中模块 in store
-  store.commit("dnd/PUSH_CHECKEDKEYS", onCheckedKeys);
 
-  let _keys = info.node.eventKey.split("-");
-  let _classId = Number(_keys[1]);
-  let _arr = _keys[2].split("_");
-  let _index = Number(_arr[0]);
-  let _key = _arr[1];
-  if (!_key) return;
-  //console.log(_keys);
-  //if (!checkedKeys || checkedKeys.length == 0 || _key.length < 3) return;
+  // prefix: 微件类型 classIdStr: 容器类型 componentInfo: 组件索引_组件key
+  const [prefix, classIdStr, componentInfo] = info.node.eventKey.split("-");
+  const [indexStr, componentKey] = componentInfo.split("_");
+  if (!componentKey) return; // 没有componentKey，直接返回
+
+  // tree数据私有化
+  const _keys = [prefix, classIdStr, componentInfo]
+  const _key = componentKey || '';
+  const _classId = Number(classIdStr) || 0;
+  const _index = Number(indexStr) || 0;
+
   //console.log(state.activatedComponents);
   if (state.activatedComponents.find((item) => item.key === _key)) {
-    showConfirm("list", _keys);
+    showComponentExistConfirm("list", _keys); // 微件已存在，提示是否删除
+    return;
   } else {
-    let _component = {
+    const _component = {
       ...state.components[_classId][_index],
       treeKey: info.node.eventKey,
     };
-    if (state.activatedComponents && state.activatedComponents.length > 0) {
-      let { height, ccs } = state.activatedComponents[
+
+    if (state.activatedComponents && state.activatedComponents.length > 0) { // 画布不为空
+      // 获取最后一个组件的高度和ccs
+      const { ccs } = state.activatedComponents[
         state.activatedComponents.length - 1
       ];
-      let _ccs = ccs.split("/").map(Number);
-      //console.log(_ccs);
-      if (
-        _ccs[3] + state.components[_classId][_index].width <=
-        gridColumn.value + 1 &&
-        height <= gridRow.value + 1
+
+      // 分割ccs字符串并转换为数字数组, 格式: [x, y, height, width], 相对grid-area: [grid-row-start / grid-column-start / grid-row-end / grid-column-end]
+      const aCss = ccs.split("/").map(Number);
+
+      if ( // 判断在最后一个微件的同一行里是否有位置可以插入新微件
+        aCss[0] + _component.height <= gridRow.value + 1 && // 高度和小于画布
+        aCss[3] + _component.width <= gridColumn.value + 1 // 宽度和小于画布
       ) {
         _component.ccs =
-          _ccs[0] +
+          aCss[0] +
           "/" +
-          _ccs[3] +
+          aCss[3] +
           "/" +
-          (_ccs[0] + state.components[_classId][_index].height) +
+          (aCss[0] + _component.height) +
           "/" +
-          (_ccs[3] + state.components[_classId][_index].width);
-      } else if (
-        _ccs[3] + state.components[_classId][_index].width >
-        gridColumn.value + 1 &&
-        _ccs[2] + state.components[_classId][_index].height <=
-        gridRow.value + 1
+          (aCss[3] + _component.width);
+      } else if ( // 判断在最后一个微件的同一行后是否有位置可以插入新微件
+        aCss[0] + _component.height <= gridRow.value + 1 &&
+        aCss[3] + _component.width > gridColumn.value + 1
       ) {
         _component.ccs =
-          _ccs[2] +
+          aCss[2] +
           "/1" +
           "/" +
-          (_ccs[2] + state.components[_classId][_index].height) +
+          (aCss[2] + _component.height) +
           "/" +
-          (state.components[_classId][_index].width + 1);
+          (_component.width + 1);
       } else {
         proxy?.$message.warning("已没有位置可以插入新组件！");
-        checkedKeys.value = onCheckedKeys.filter(
-          (item) => item !== info.node.eventKey
-        );
+        deleteCheckedKeys(checked, info); // 从选中列表中删除指定节点的key
         return;
       }
-    } else
+    } else // 画布为空，直接插入第一个组件
       _component.ccs =
         "1/1/" +
-        (Number(state.components[_classId][_index].height) + 1) +
+        (_component.height + 1) +
         "/" +
-        (Number(state.components[_classId][_index].width) + 1);
+        (_component.width + 1);
 
     //console.log(_component);
-    state.activatedComponents.push(_component);
+    addComponent(_component); // 添加组件到画布
+    addCheckedKeys(checked, info); // 从选中列表中添加指定节点的key
+
   }
 
   //console.log(state.activatedComponents);
@@ -501,7 +542,7 @@ const updateList = () => {
 }
 
 // 显示确认框
-const showConfirm = (type: string, keys: string[], actIndex: number = 0) => {
+const showComponentExistConfirm = (type: string, keys: string[], actIndex: number = 0) => {
   if (proxy) {
     proxy.$confirm({
       title: "提示",

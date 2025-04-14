@@ -10,7 +10,7 @@ import './plugins/mock/index.ts'
 import http from './plugins/axios/index.ts'
 
 // 插件
-import Test from './plugins/QuickPage-Builder-AI-core/index.ts'
+import dnd from './plugins/QuickPage-Builder-AI-core/index.ts'
 
 // i18n配置
 const i18n = createI18n({
@@ -23,4 +23,4 @@ const app = createApp(App)
 // 挂载axios实例
 app.config.globalProperties.$axios = http
 
-app.use(i18n).use(Test).mount('#app')
+app.use(i18n).use(dnd).mount('#app')
