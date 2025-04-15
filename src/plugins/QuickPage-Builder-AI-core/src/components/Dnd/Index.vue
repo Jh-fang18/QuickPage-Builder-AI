@@ -119,7 +119,7 @@ const navigationId = ref(0)
 const terminalType = ref(0) // 0: PC, 1: Mobile
 const isPreviewModel = ref(false)
 const editPreviewMobileModalVisible = ref(false)
-const editNavSenuSettingsModalVisible = ref(false)
+// const editNavSenuSettingsModalVisible = ref(false)
 const expandedKeys = ref([""])
 const autoExpandParent = ref(true)
 const gridColumn = ref(24)
@@ -347,17 +347,17 @@ const getNavigationList = async () => {
   }
 }
 
-const updateSelfServiceItem = async (itemData: any) => {
-  if (proxy) {
-    return await proxy.$axios.post(
-      "/self/item/updateSelfServiceItem",
-      itemData
-    );
-  } else {
-    console.error('Proxy is null');
-    return null;
-  }
-}
+// const updateSelfServiceItem = async (itemData: any) => {
+//   if (proxy) {
+//     return await proxy.$axios.post(
+//       "/self/item/updateSelfServiceItem",
+//       itemData
+//     );
+//   } else {
+//     console.error('Proxy is null');
+//     return null;
+//   }
+// }
 /** end **/
 
 /** start component相关操作 */
@@ -527,21 +527,22 @@ const cancel = () => {
   isPreviewModel.value = false;
 }
 
-const updateList = () => {
-  editNavSenuSettingsModalVisible.value = false;
-  getNavigationList().then((res) => {
-    state.tabs = (res && Array.isArray(res.data) ? res.data : []) || [];
-    tabsActiveKey.value = 0;
-    navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : 0;
+// const updateList = () => {
+//   editNavSenuSettingsModalVisible.value = false;
+//   getNavigationList().then((res) => {
+//     state.tabs = (res && Array.isArray(res.data) ? res.data : []) || [];
+//     tabsActiveKey.value = 0;
+//     navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : 0;
 
-    getTempInfo({
-      tempId: Number(tempId.value),
-      navigationId: Number(navigationId.value),
-    });
-  });
-}
+//     getTempInfo({
+//       tempId: Number(tempId.value),
+//       navigationId: Number(navigationId.value),
+//     });
+//   });
+// }
 
 // 显示确认框
+
 const showComponentExistConfirm = (type: string, keys: string[], actIndex: number = 0) => {
   if (proxy) {
     proxy.$confirm({
