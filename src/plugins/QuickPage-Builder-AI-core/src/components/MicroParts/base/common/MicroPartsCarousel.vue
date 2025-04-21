@@ -18,12 +18,16 @@ export default {
 <style scoped lang="less">
 .ant-carousel {
   height: 100%;
+
   /deep/ .slick-slider {
     height: 100%;
+
     .slick-thumb {
       bottom: 0;
+
       li {
         margin: 0 8px;
+
         .dot {
           width: 10px;
           height: 10px;
@@ -32,8 +36,9 @@ export default {
           background: #d8d8d8;
         }
       }
+
       li.slick-active .dot {
-        background: @primary-color;
+        background: #333;
       }
     }
   }

@@ -1,4 +1,4 @@
-<script>
+<script lang="jsx">
 export default {
   props: {
     custom: {
@@ -51,23 +51,29 @@ export default {
   padding: 16px 24px;
   background: #fff;
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-  border-radius: @radius;
+  border-radius: #343434;
+
   &-left {
     height: 100%;
+
     .left-custom-content {
       height: 100%;
     }
+
     .left-content {
       height: 100%;
+
       &-header {
         position: relative;
         height: 38px;
+
         .header-title {
           float: left;
           font-size: 16px;
           color: rgba(0, 0, 0, 0.85);
           letter-spacing: 0.44px;
         }
+
         .header-facade {
           display: inline-block;
           position: absolute;
@@ -75,18 +81,22 @@ export default {
           left: 50%;
           transform: translateX(-50%);
         }
+
         .header-actions {
           float: right;
         }
       }
+
       &-content {
         height: calc(100% - 38px);
-        > div:only-child {
+
+        >div:only-child {
           height: 100%;
         }
       }
     }
   }
+
   &-right {
     position: absolute;
     top: 0;
@@ -94,10 +104,11 @@ export default {
     text-align: center;
     height: 100%;
     width: 50%;
+
     // background: url('../../../../assets/todobg.png') no-repeat;
     // background-size: 400px 248px;
     // background-position: center 85%;
-    > img {
+    >img {
       position: absolute;
       bottom: 44px;
       left: 50%;

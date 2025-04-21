@@ -3,6 +3,6 @@ import dnd from './module/store.ts'
 
 export const store = createStore({
   modules: {
-    dnd,
-  },
+    dnd
+  }
 })

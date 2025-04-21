@@ -4,12 +4,9 @@
       <div class="micro-parts-left" ref="listContainer">
         <micro-parts-carousel v-if="data.length > 0">
           <div class="functions-group" v-for="item in pagination.pageNum" :key="item">
-            <div
-              class="item"
+            <div class="item"
               v-for="o in data.slice(item - 1 ? (item - 1) * pagination.pageSize : 0, item * pagination.pageSize)"
-              :key="o.id"
-              @click="goPage(o.entryUrl)"
-            >
+              :key="o.id" @click="goPage(o.entryUrl)">
               <div class="item-inner">
                 <div class="item-inner-icon" :style="{ backgroundImage: o.color, backgroundColor: o.colorForIE9 }">
                   <a-icon :type="o.icon" :style="{ fontSize: '32px', color: '#fff' }"></a-icon>
@@ -26,10 +23,10 @@
 </template>
 
 <script>
-import MicroPartsCarousel from './base/common/MicroPartsCarousel';
-import DataEmpty from './base/common/DataEmpty';
-import BaseMixin from './base/mixin/baseMixin';
-import PartShell from './base/common/PartShell';
+import MicroPartsCarousel from './base/common/MicroPartsCarousel.vue';
+import DataEmpty from './base/common/DataEmpty.vue';
+import BaseMixin from './base/mixin/baseMixin.js';
+import PartShell from './base/common/PartShell.vue';
 const colors = [
   'linear-gradient(-180deg, #4EE9A3 0%, #33C181 100%)',
   'linear-gradient(-180deg, #FFAF99 0%, #FF8163 100%)',
@@ -139,6 +136,7 @@ export default {
 }
 
 .functions-group {
+
   // display: flex !important;
   // justify-content: flex-start;
   // flex-wrap: wrap;
@@ -153,11 +151,13 @@ export default {
     width: 132px;
     height: 150px;
     text-align: center;
+
     &-inner {
       width: 100%;
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
+
       &-icon {
         // display: flex;
         // justify-content: center;
@@ -166,15 +166,18 @@ export default {
         height: 66px;
         border-radius: 50%;
         margin: 0 auto;
+
         .anticon {
           position: relative;
           top: 50%;
           transform: translateY(-50%);
         }
       }
+
       &-desc {
         margin-top: 16px;
       }
+
       &:hover {
         // transform: translateY(calc(-50% - 1px));
         margin-top: -1px;
