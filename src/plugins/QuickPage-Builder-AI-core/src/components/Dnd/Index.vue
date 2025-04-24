@@ -576,14 +576,14 @@ const updateComponentItem = (
  * @param checkedKeys
  */
 const activatedComponents = (_contentId: number, _activatedComponents: ComponentItem[], _oldContent: string, _checkedKeys?: Parameters<Exclude<TreeProps["onCheck"], undefined>>[0]) => {
-  contentId.value = _contentId;
-  oldContent.value = _oldContent;
-  state.activatedComponents = _activatedComponents;
-
   //勾选已选中微件
   if (_checkedKeys) {
     addCheckedKeys(_checkedKeys);
   }
+
+  contentId.value = _contentId;
+  oldContent.value = _oldContent;
+  state.activatedComponents = _activatedComponents;
 }
 /** end */
 
@@ -601,11 +601,12 @@ const activatedComponents = (_contentId: number, _activatedComponents: Component
  */
 const addCheckedKeys = (checked: Parameters<Exclude<TreeProps['onCheck'], undefined>>[0]) => {
   if (!checked) return;
+
   const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
   checkedKeys.value = [...onCheckedKeys];
 
   //checkedKeys in store
-  store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
+  store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys.value);
 }
 
 /** 
@@ -616,6 +617,7 @@ const addCheckedKeys = (checked: Parameters<Exclude<TreeProps['onCheck'], undefi
  */
 const deleteCheckedKeys: TreeProps['onCheck'] = (checked, info) => {
   if (!checked || !info?.node?.eventKey) return;
+
   const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
   checkedKeys.value = onCheckedKeys.filter(
     (item) => item !== info.node.eventKey
@@ -715,7 +717,7 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
     //console.log(_component);
     addComponent(_component); // 添加组件到画布
     addCheckedKeys(checked); // 从选中列表中添加指定节点的key
-
+    setWorkbenchData(tempId.value, contentId.value, state.activatedComponents, oldContent.value, checkedKeys.value); // 保存已激活模板信息到sessionStorage
   }
 
   //console.log(state.activatedComponents);
@@ -734,22 +736,12 @@ const onSelect: TreeProps['onSelect'] = (selectedKeys, info) => {
 
 // 预览
 const preview = () => {
-  let _workbenchData = {
-    contentId: contentId.value,
-    activatedComponents: state.activatedComponents,
-    oldContent: oldContent.value,
-    checkedKeys: checkedKeys.value,
-  };
-
-  let workbenchData =
-    JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {};
-
-  if (tempId.value) workbenchData[tempId.value] = _workbenchData;
-  else workbenchData["tmp"] = _workbenchData;
-
-  window.sessionStorage.setItem(
-    "activatedComponents",
-    JSON.stringify(workbenchData)
+  setWorkbenchData(
+    tempId.value,
+    contentId.value,
+    state.activatedComponents,
+    oldContent.value,
+    checkedKeys.value
   );
 
   isPreviewModel.value = true;
@@ -798,6 +790,33 @@ const onFinishFailed = (errorInfo: any) => {
   console.log('Failed:', errorInfo);
 };
 
+/**
+ * 设置已激活模板信息存入sessionStorage
+ * @param _tempId 模板id
+ * @param _contentId 内容id
+ * @param _activatedComponents 已激活组件
+ * @param _oldContent 旧内容
+ * @param _checkedKeys 选中的keys
+ */
+const setWorkbenchData = (_tempId: string, _contentId: number, _activatedComponents: ComponentItem[], _oldContent: string, _checkedKeys?: Parameters<Exclude<TreeProps["onCheck"], undefined>>[0]) => {
+  const _workbenchData = {
+    contentId: _contentId,
+    activatedComponents: _activatedComponents,
+    oldContent: _oldContent,
+    checkedKeys: _checkedKeys,
+  };
+
+  const workbenchData =
+    JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {};
+
+  if (_tempId) workbenchData[_tempId] = _workbenchData;
+  else workbenchData["tmp"] = _workbenchData;
+
+  window.sessionStorage.setItem(
+    "activatedComponents",
+    JSON.stringify(workbenchData)
+  );
+}
 
 // ======================
 // 顶层变量赋值相关操作
@@ -811,11 +830,10 @@ const onFinishFailed = (errorInfo: any) => {
 const catchRouterData = () => {
   tempId.value = String(route.query.tempIdQuery || "tmp");
   terminalType.value = Number(route.query.terminalTypeQuery || 0);
+  // console.log(tempId.value, terminalType.value);
 }
 /** end */
 
-// 监听路由变化
-watch(() => [route.query.tempIdQuery, route.query.terminalTypeQuery], fetchComponentData, { immediate: true })
 
 // 生命周期
 onMounted(async () => {
