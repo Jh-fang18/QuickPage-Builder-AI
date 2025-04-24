@@ -78,28 +78,34 @@ export default {
     text-align: center;
     width: 100%;
   }
+
   .title {
     display: table-cell;
     font-size: 16px;
     font-weight: bold;
     width: 60%;
   }
+
   .content {
     display: table-cell;
     width: 40%;
+
     span {
       display: block;
+
       &.current-number {
         font-size: 24px;
         font-weight: bold;
       }
+
       &.more,
       strong.more {
-        color: @success-color;
+        color: green;
       }
+
       &.less,
       strong.less {
-        color: @error-color;
+        color: #bb2121;
       }
     }
   }

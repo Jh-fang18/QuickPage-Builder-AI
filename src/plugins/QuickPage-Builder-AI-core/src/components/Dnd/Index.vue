@@ -68,7 +68,7 @@
 
 <script lang="ts" setup>
 // 导入已有组件
-import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
+import { ref, reactive, watch, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
@@ -129,7 +129,11 @@ const gridPadding = ref(20)
 const oldContent = ref("[]")
 const tabsActiveKey = ref(0)
 
-/** start 计算属性 */
+
+// ======================
+// 计算属性
+// ======================
+
 // 表单提交按钮是否禁用
 const disabled = computed(() => {
   return !(formState.gridRow && formState.gridColumn);
@@ -178,7 +182,11 @@ const checkedKeys = computed({
 })
 /** end */
 
-/** start 响应式状态 */
+
+// ======================
+// 响应式状态
+// ======================
+
 const state = reactive({
   treeData: [] as TreeProps['treeData'],
   components: [] as ComponentItem[][],
@@ -193,7 +201,10 @@ const formState = reactive<FormState>({
 /** end */
 
 
+
+
 /* ====================== 核心方法 ====================== */
+
 /**
  * 封装API请求处理
  * @param apiCall API调用函数
@@ -215,12 +226,10 @@ const handleApiRequest = async <T>(apiCall: () => Promise<T>, errorMessage: stri
   }
 }
 
-// 表单提交失败回调
-const onFinishFailed = (errorInfo: any) => {
-  console.log('Failed:', errorInfo);
-};
+// ======================
+// 保存相关操作
+// ======================
 
-/** start 保存相关操作 */
 // save时获取基本数据
 const createPayload = () => ({
   id: contentId.value || 0,
@@ -266,7 +275,12 @@ const save = async () => {
 }
 /** end **/
 
-/** start 获取页面输数据相关 */
+
+// ======================
+// 获取页面输数据相关 
+// ======================
+
+// 获取页面数据
 const getTempInfo = (data: { tempId: string | number; navigationId?: number }) => {
   return handleApiRequest(async () => {
     const res: TempInfoData = await proxy!.$axios.post("/self/homePageInfo/getTempInfo", data);
@@ -274,52 +288,20 @@ const getTempInfo = (data: { tempId: string | number; navigationId?: number }) =
     // res内容判断，如果没有数据或者提示错误，直接返回
     if (!res?.tempId && !res?.dataList) {
       proxy?.$message.error('没有TempId数据加载失败')
-      return res
+      return null
     }
 
-    let { content, id } = res?.dataList || {};
+    const { content: _content, id: _contentId } = res!.dataList || {};
 
-    if (content) state.activatedComponents = JSON.parse(content);
-    else state.activatedComponents = [];
-
-    //保留原始content用于判断是否有过修改
-    oldContent.value = content || "[]";
-
-    //设置画布高度
-    if (state.activatedComponents && state.activatedComponents.length > 0) {
-      let _gridRow = state.activatedComponents[
-        state.activatedComponents.length - 1
-      ]["ccs"]
-        .split("/")
-        .map((item) => Number(item))[2];
-      gridRow.value = _gridRow < 36 ? 36 : _gridRow;
+    return {
+      contentId: _contentId || 0,
+      activatedComponents: JSON.parse(_content) as ComponentItem[] || [],
+      oldContent: _content || "[]"
     }
-
-    if (id) contentId.value = id;
-    else contentId.value = 0;
-
-    //console.log(state.activatedComponents);
-    //console.log(MicroCardsList);
-
-    //临时记录选中模块 in store
-    store.commit("dnd/PUSH_CHECKEDKEYS", [
-      ...(MicroCardsList.value || []).filter((item) =>
-        (state.activatedComponents || []).find(
-          (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
-        )
-      ).map((item) => item.key),
-      ...(ContainersList.value || []).filter((item) =>
-        (state.activatedComponents || []).find(
-          (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
-        )
-      ).map((item) => item.key),
-    ]);
-
-    return res;
-
   }, '获取页面数据失败');
 }
 
+// 获取微件数据
 const getSelfServiceItemList = async (itemType: number, terminalType: number) => {
   return handleApiRequest(async () => {
     const res: SelfServiceData = await proxy!.$axios.post("/self/item/getSelfServiceItemList", {
@@ -347,6 +329,176 @@ const getNavigationList = async () => {
   }
 }
 
+// 数据获取方法
+const fetchComponentData = async () => {
+  // 设置路由参数
+  if (route.query.tempIdQuery || route.query.terminalTypeQuery) {
+    catchRouterData();
+  }
+
+  //获取组件列表
+  await Promise.all([
+    getSelfServiceItemList(0, terminalType.value), //其他类
+  ])
+    .then((res) => {
+      if (!res) return;
+
+      (res || []).map((item, index) => {
+        let dataList: SelfServiceDataItem[] = item?.dataList || [];
+        //console.log(dataList);
+
+        //获取组件基本信息
+        state.components[index] = (dataList || []).map((item) => {
+          return {
+            title: item.itemName,
+            key: String(item.id),
+            url: item.url,
+            minWidth: 0,
+            minHeight: 0,
+            width: 0,
+            height: 0,
+            editTitle: false,
+            positionX: 0,
+            positionY: 0,
+            selfServiceData: {} as SelfServiceDataItem,
+            treeKey: '',
+            ccs: '',
+          };
+        });
+
+        //console.log(state.components);
+        //console.log(1,MicroCards);
+        //console.log(2,state.microParts);
+
+        // PC端
+        if (terminalType.value === 0) {
+          //删除不存在的微件
+          state.components[index] = state.components[index].filter(
+            (item, index) => {
+              const microCard: CardData = item.url && _MicroCards[item.url];
+              if (microCard) {
+                const { minRowSpan, minColSpan } = microCard.data();
+                Object.assign(item, updateComponentItem(item, minRowSpan, minColSpan, dataList[index]));
+              }
+              return !!microCard;
+            }
+          );
+
+          // 抓取路由参数tempId
+          if (!tempId.value)
+            catchRouterData();
+
+          // 从sessionStorage中获取已激活组件数据
+          const workbenchData: Record<string, any> = JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}");
+
+          if (workbenchData[tempId.value]) {
+            const {
+              contentId: _contentId = 0,
+              activatedComponents: _activatedComponents = [],
+              oldContent: _oldContent = '[]',
+              checkedKeys: _checkedKeys,
+            } = workbenchData[tempId.value];
+
+            // 更新state.activatedComponents
+            activatedComponents(_contentId, _activatedComponents, _oldContent, _checkedKeys);
+          }
+          else
+            getTempInfo({
+              tempId: tempId.value,
+            }).then((res) => {
+              if (res) {
+                const { contentId: _contentId = 0, activatedComponents: _activatedComponents = [], oldContent: _oldContent = '[]' } = res;
+
+                // 更新state.activatedComponents
+                activatedComponents(_contentId, _activatedComponents, _oldContent);
+
+                //临时记录选中模块 in store
+                store.commit("dnd/PUSH_CHECKEDKEYS", [
+                  ...(MicroCardsList.value || []).filter((item) =>
+                    (state.activatedComponents || []).find(
+                      (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
+                    )
+                  ).map((item) => item.key),
+                  ...(ContainersList.value || []).filter((item) =>
+                    (state.activatedComponents || []).find(
+                      (iitem) => iitem.key === item.key.split("-")[2].split("_")[1]
+                    )
+                  ).map((item) => item.key),
+                ]);
+
+              }
+            });
+
+          // 设置画布高度
+          if (state.activatedComponents && state.activatedComponents.length > 0) {
+            let _gridRow = state.activatedComponents[
+              state.activatedComponents.length - 1
+            ]["ccs"]
+              .split("/")
+              .map((item) => Number(item))[2];
+            gridRow.value = _gridRow < 36 ? 36 : _gridRow;
+          }
+        }
+        // 移动端
+        else if (terminalType.value === 1) {
+          //删除不存在的微件
+          state.components[index] = state.components[index].map((item) => {
+            item.minWidth = 10;
+            item.minHeight = 3;
+            item.width = 10;
+            item.height = 3;
+            item.positionX = 0;
+            item.positionY = 0;
+            return item;
+          });
+
+          //获取已激活模板信息
+          getNavigationList().then((res) => {
+            state.tabs = res?.data || [];
+            tabsActiveKey.value = 0;
+            navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : 0;
+
+            if (navigationId.value <= 0) {
+              proxy?.$axios
+                .post(
+                  "/self/homePageInfo/saveNavigation",
+                  state.tabs.map((item) => {
+                    return { ...item, tempId: Number(tempId) };
+                  })
+                )
+                .then(() => {
+                  getNavigationList().then((res) => {
+                    state.tabs = res?.data || [];
+                    navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : -1;
+
+                    if (state.tabs.length > 0)
+                      getTempInfo({
+                        tempId: Number(tempId),
+                        navigationId: Number(navigationId.value),
+                      });
+                  });
+                });
+            } else {
+              if (state.tabs.length > 0)
+                getTempInfo({
+                  tempId: Number(tempId),
+                  navigationId: Number(navigationId.value),
+                });
+            }
+
+            gridColumn.value = 10;
+            gridScale.value = 30.3;
+            gridPadding.value = 8;
+          });
+        }
+      });
+    })
+    .catch((err) => {
+      console.error('获取模板信息失败:', err)
+      proxy?.$message.error('数据加载失败') // 新增错误提示
+    });
+};
+
 // const updateSelfServiceItem = async (itemData: any) => {
 //   if (proxy) {
 //     return await proxy.$axios.post(
@@ -360,28 +512,105 @@ const getNavigationList = async () => {
 // }
 /** end **/
 
-/** start component相关操作 */
-// 添加组件到画布
+
+// ======================
+//  component相关操作
+//  注意：以下部分函数会直接修改外部变量state.activatedComponents，而不是返回新的数组。
+// ======================
+
+/**
+ * 添加组件到画布
+ * 注意: 直接修改外部变量state.activatedComponents
+ * @param component 要添加的组件
+ */
 const addComponent = (component: ComponentItem) => {
   if (!component) return;
   state.activatedComponents.push(component);
 }
+
+/**
+ * 移除组件
+ * 注意: 直接修改外部变量state.activatedComponents
+ * @param type 组件类型
+ * @param keys 组件key
+ * @param actIndex 组件索引
+ */
+const removeComponent = (type: string, keys: string[], actIndex: number = 0) => {
+  //console.log(actIndex);
+  let _arr = keys[2].split("_");
+  if (type === "list") {
+    state.activatedComponents = state.activatedComponents.filter(
+      item => item.key !== _arr[1]
+    );
+  } else if (type === "component") {
+    state.activatedComponents.splice(actIndex, 1);
+  }
+
+  store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
+}
+
+// 更新组件列表
+const updateComponentItem = (
+  item: ComponentItem,
+  minRowSpan: number,
+  minColSpan: number,
+  selfServiceData: SelfServiceDataItem
+): ComponentItem => ({
+  ...item,
+  minWidth: minRowSpan,
+  minHeight: minColSpan,
+  width: minRowSpan,
+  height: minColSpan,
+  editTitle: false,
+  positionX: 0,
+  positionY: 0,
+  selfServiceData
+});
+
+/**
+ * 获取已激活模板信息
+ * 注意: 直接修改外部变量state.activatedComponents
+ * @param contentId 
+ * @param activatedComponents 
+ * @param oldContent
+ * @param checkedKeys
+ */
+const activatedComponents = (_contentId: number, _activatedComponents: ComponentItem[], _oldContent: string, _checkedKeys?: Parameters<Exclude<TreeProps["onCheck"], undefined>>[0]) => {
+  contentId.value = _contentId;
+  oldContent.value = _oldContent;
+  state.activatedComponents = _activatedComponents;
+
+  //勾选已选中微件
+  if (_checkedKeys) {
+    addCheckedKeys(_checkedKeys);
+  }
+}
 /** end */
 
-//** start tree组件相关操作 */
-/** 从选中列表中添加指定节点的key 
- * 注意：此函数会直接修改外部变量checkedKeys，而不是返回新的数组。
+
+// ======================
+// Tree 组件操作方法
+//  注意：以下部分函数会直接修改外部变量checkedKeys，而不是返回新的数组。
+//  注意：以下部分函数会直接修改外部变量expandedKeys，而不是返回新的数组。
+// ======================
+
+/** 
+ * 从选中列表中添加指定节点的key 
+ * 注意：此函数会直接修改外部变量checkedKeys
  * @param checked 当前选中状态
- * @param info 节点信息
  */
-const addCheckedKeys: TreeProps['onCheck'] = (checked, info) => {
-  if (!checked || !info?.node?.eventKey) return;
+const addCheckedKeys = (checked: Parameters<Exclude<TreeProps['onCheck'], undefined>>[0]) => {
+  if (!checked) return;
   const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
   checkedKeys.value = [...onCheckedKeys];
+
+  //checkedKeys in store
+  store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
 }
+
 /** 
  * 从选中列表中删除指定节点的key
- * 注意：此函数会直接修改外部变量checkedKeys，而不是返回新的数组。
+ * 注意：此函数会直接修改外部变量checkedKeys
  * @param checked 当前选中状态
  * @param info 节点信息
  */
@@ -392,7 +621,6 @@ const deleteCheckedKeys: TreeProps['onCheck'] = (checked, info) => {
     (item) => item !== info.node.eventKey
   );
 }
-/** end */
 
 // 展开节点
 const onExpand: TreeProps['onExpand'] = (onExpandedKeys, info) => {
@@ -486,7 +714,7 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
 
     //console.log(_component);
     addComponent(_component); // 添加组件到画布
-    addCheckedKeys(checked, info); // 从选中列表中添加指定节点的key
+    addCheckedKeys(checked); // 从选中列表中添加指定节点的key
 
   }
 
@@ -497,6 +725,12 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
 const onSelect: TreeProps['onSelect'] = (selectedKeys, info) => {
   console.log(selectedKeys, info);
 }
+/** end */
+
+
+// ======================
+// 预览相关方法
+// ======================
 
 // 预览
 const preview = () => {
@@ -510,9 +744,8 @@ const preview = () => {
   let workbenchData =
     JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {};
 
-  if (tempId.value) {
-    workbenchData[tempId.value] = _workbenchData;
-  } else workbenchData["tmp"] = _workbenchData;
+  if (tempId.value) workbenchData[tempId.value] = _workbenchData;
+  else workbenchData["tmp"] = _workbenchData;
 
   window.sessionStorage.setItem(
     "activatedComponents",
@@ -526,6 +759,7 @@ const preview = () => {
 const cancel = () => {
   isPreviewModel.value = false;
 }
+/** end */
 
 // const updateList = () => {
 //   editNavSenuSettingsModalVisible.value = false;
@@ -542,7 +776,6 @@ const cancel = () => {
 // }
 
 // 显示确认框
-
 const showComponentExistConfirm = (type: string, keys: string[], actIndex: number = 0) => {
   if (proxy) {
     proxy.$confirm({
@@ -560,182 +793,40 @@ const showComponentExistConfirm = (type: string, keys: string[], actIndex: numbe
   }
 }
 
-// 删除组件
-const removeComponent = (type: string, keys: string[], actIndex: number = 0) => {
-  //console.log(actIndex);
-  let _arr = keys[2].split("_");
-  if (type === "list") {
-    state.activatedComponents = state.activatedComponents.filter(
-      item => item.key !== _arr[1]
-    );
-  } else if (type === "component") {
-    state.activatedComponents.splice(actIndex, 1);
-  }
-
-  store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
-}
-
-// 更新组件列表
-const updateComponentItem = (
-  item: ComponentItem,
-  minRowSpan: number,
-  minColSpan: number,
-  selfServiceData: SelfServiceDataItem
-): ComponentItem => ({
-  ...item,
-  minWidth: minRowSpan,
-  minHeight: minColSpan,
-  width: minRowSpan,
-  height: minColSpan,
-  editTitle: false,
-  positionX: 0,
-  positionY: 0,
-  selfServiceData
-});
-
-// 数据获取方法
-const fetchComponentData = async () => {
-  tempId.value = String(route.query.tempIdQuery) || "tmp";
-  terminalType.value = Number(route.query.terminalTypeQuery) || 0;
-
-  //获取组件列表
-  await Promise.all([
-    getSelfServiceItemList(0, terminalType.value), //其他类
-    getSelfServiceItemList(1, terminalType.value), //容器类
-  ])
-    .then((res) => {
-      if (!res) return;
-
-      (res || []).map((item, index) => {
-        let dataList: SelfServiceDataItem[] = item?.dataList || [];
-        //console.log(dataList);
-
-        //获取组件基本信息
-        state.components[index] = (dataList || []).map((item) => {
-          return {
-            title: item.itemName,
-            key: String(item.id),
-            url: item.url,
-            minWidth: 0,
-            minHeight: 0,
-            width: 0,
-            height: 0,
-            editTitle: false,
-            positionX: 0,
-            positionY: 0,
-            selfServiceData: {} as SelfServiceDataItem,
-            treeKey: '',
-            ccs: '',
-          };
-        });
-
-        //console.log(state.components);
-        //console.log(1,MicroCards);
-        //console.log(2,state.microParts);
-
-        // PC端
-        if (terminalType.value === 0) {
-          //删除不存在的微件
-          state.components[index] = state.components[index].filter(
-            (item, index) => {
-              const microCard: CardData = item.url && _MicroCards[item.url];
-              if (microCard) {
-                const { minRowSpan, minColSpan } = microCard.data();
-                Object.assign(item, updateComponentItem(item, minRowSpan, minColSpan, dataList[index]));
-              }
-              return !!microCard;
-            }
-          );
-
-          //获取已激活模板信息
-          const workbenchData = JSON.parse(window.sessionStorage.getItem("activatedComponents") || "{}") || {} as Record<string, any>;
-          if (workbenchData[tempId.value]) {
-            const {
-              contentId: _contentId,
-              activatedComponents: _activatedComponents,
-              oldContent: _oldContent,
-              checkedKeys: _checkedKeys,
-            } = workbenchData[tempId.value];
-            contentId.value = _contentId || 0;
-            state.activatedComponents = _activatedComponents;
-            //checkedKeys in store
-            store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys);
-            oldContent.value = _oldContent;
-          } else
-            getTempInfo({
-              tempId: tempId.value,
-            });
-        }
-        // 移动端
-        else if (terminalType.value === 1) {
-          //删除不存在的微件
-          state.components[index] = state.components[index].map((item) => {
-            item.minWidth = 10;
-            item.minHeight = 3;
-            item.width = 10;
-            item.height = 3;
-            item.positionX = 0;
-            item.positionY = 0;
-            return item;
-          });
-
-          //获取已激活模板信息
-          getNavigationList().then((res) => {
-            state.tabs = res?.data || [];
-            tabsActiveKey.value = 0;
-            navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : 0;
-
-            if (navigationId.value <= 0) {
-              proxy?.$axios
-                .post(
-                  "/self/homePageInfo/saveNavigation",
-                  state.tabs.map((item) => {
-                    return { ...item, tempId: Number(tempId) };
-                  })
-                )
-                .then(() => {
-                  getNavigationList().then((res) => {
-                    state.tabs = res?.data || [];
-                    navigationId.value = state.tabs[0] ? Number(state.tabs[0].id) : -1;
-
-                    if (state.tabs.length > 0)
-                      getTempInfo({
-                        tempId: Number(tempId),
-                        navigationId: Number(navigationId.value),
-                      });
-                  });
-                });
-            } else {
-              if (state.tabs.length > 0)
-                getTempInfo({
-                  tempId: Number(tempId),
-                  navigationId: Number(navigationId.value),
-                });
-            }
-
-            gridColumn.value = 10;
-            gridScale.value = 30.3;
-            gridPadding.value = 8;
-          });
-        }
-      });
-    })
-    .catch((err) => {
-      console.error('获取模板信息失败:', err)
-      proxy?.$message.error('数据加载失败') // 新增错误提示
-    });
+// 表单提交失败回调
+const onFinishFailed = (errorInfo: any) => {
+  console.log('Failed:', errorInfo);
 };
+
+
+// ======================
+// 顶层变量赋值相关操作
+// 注意：以下函数会直接修改外部变量，而不是返回新的数组。
+// ======================
+
+/** 
+ * 从路由获取tempId和terminalType。
+ * 注意：此函数会直接修改这两个外部变量，而不是返回新的数组。
+ */
+const catchRouterData = () => {
+  tempId.value = String(route.query.tempIdQuery || "tmp");
+  terminalType.value = Number(route.query.terminalTypeQuery || 0);
+}
+/** end */
+
+// 监听路由变化
+watch(() => [route.query.tempIdQuery, route.query.terminalTypeQuery], fetchComponentData, { immediate: true })
 
 // 生命周期
 onMounted(async () => {
   // 初始化
   loading.value = true;
-  try {
 
+  try {
     // 获取组件数据
     await fetchComponentData();
 
-    //设置树列表
+    // 设置树列表
     state.treeData = [
       {
         title: "其他类",
@@ -751,7 +842,7 @@ onMounted(async () => {
       },
     ];
 
-    //展开树列表
+    // 展开树列表
     expandedKeys.value = [
       "0-0",
       "0-1",

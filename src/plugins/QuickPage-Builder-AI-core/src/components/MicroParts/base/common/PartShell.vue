@@ -1,4 +1,4 @@
-<script lang="jsx">
+<script>
 export default {
   props: {
     custom: {

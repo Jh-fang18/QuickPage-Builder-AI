@@ -1,24 +1,22 @@
 <template>
   <div class="common-functions">
-    <part-shell :title="itemName">
-      <div class="micro-parts-left" ref="listContainer">
-        <micro-parts-carousel v-if="data.length > 0">
-          <div class="functions-group" v-for="item in pagination.pageNum" :key="item">
-            <div class="item"
-              v-for="o in data.slice(item - 1 ? (item - 1) * pagination.pageSize : 0, item * pagination.pageSize)"
-              :key="o.id" @click="goPage(o.entryUrl)">
-              <div class="item-inner">
-                <div class="item-inner-icon" :style="{ backgroundImage: o.color, backgroundColor: o.colorForIE9 }">
-                  <a-icon :type="o.icon" :style="{ fontSize: '32px', color: '#fff' }"></a-icon>
-                </div>
-                <div class="item-inner-desc">{{ o.showName }}</div>
+    <div class="micro-parts-left" ref="listContainer">
+      <micro-parts-carousel v-if="data.length > 0">
+        <div class="functions-group" v-for="item in pagination.pageNum" :key="item">
+          <div class="item"
+            v-for="o in data.slice(item - 1 ? (item - 1) * pagination.pageSize : 0, item * pagination.pageSize)"
+            :key="o.id" @click="goPage(o.entryUrl)">
+            <div class="item-inner">
+              <div class="item-inner-icon" :style="{ backgroundImage: o.color, backgroundColor: o.colorForIE9 }">
+                icon
               </div>
+              <div class="item-inner-desc">{{ o.showName }}</div>
             </div>
           </div>
-        </micro-parts-carousel>
-        <data-empty v-else />
-      </div>
-    </part-shell>
+        </div>
+      </micro-parts-carousel>
+      <data-empty v-else />
+    </div>
   </div>
 </template>
 
@@ -26,7 +24,6 @@
 import MicroPartsCarousel from './base/common/MicroPartsCarousel.vue';
 import DataEmpty from './base/common/DataEmpty.vue';
 import BaseMixin from './base/mixin/baseMixin.js';
-import PartShell from './base/common/PartShell.vue';
 const colors = [
   'linear-gradient(-180deg, #4EE9A3 0%, #33C181 100%)',
   'linear-gradient(-180deg, #FFAF99 0%, #FF8163 100%)',
@@ -109,7 +106,7 @@ export default {
     },
     init() {
       this.listContainer = this.$refs.listContainer;
-      this.getSelfServiceContainerPageList();
+      //this.getSelfServiceContainerPageList(); 暂不使用
     },
   },
   mounted() {
@@ -118,7 +115,6 @@ export default {
   components: {
     MicroPartsCarousel,
     DataEmpty,
-    PartShell,
   },
 };
 </script>

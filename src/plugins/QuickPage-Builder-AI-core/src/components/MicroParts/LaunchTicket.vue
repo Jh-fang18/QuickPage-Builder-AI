@@ -10,12 +10,8 @@
     </div>
     <div class="launch-ticket-content">
       <template v-if="data.length > 0">
-        <div
-          v-for="(item, index) in data"
-          :key="index"
-          class="launch-ticket-item"
-          :class="{ 'ant-col-8': rowSpan >= 17, 'ant-col-12': rowSpan >= 12 && rowSpan < 17, auto: rowSpan <= 8 }"
-        >
+        <div v-for="(item, index) in data" :key="index" class="launch-ticket-item"
+          :class="{ 'ant-col-8': rowSpan >= 17, 'ant-col-12': rowSpan >= 12 && rowSpan < 17, auto: rowSpan <= 8 }">
           <div class="title">
             <div class="item-inner-icon" :style="{ backgroundImage: item.color }">
               <a-icon :type="item.icon" :style="{ fontSize: '32px', color: '#fff' }"></a-icon>
@@ -32,7 +28,7 @@
 
 <script>
 import BaseMixin from './base/mixin/baseMixin';
-import DataEmpty from './base/common/DataEmpty';
+import DataEmpty from './base/common/DataEmpty.vue';
 const colors = [
   'linear-gradient(-180deg, #4EE9A3 0%, #33C181 100%)',
   'linear-gradient(-180deg, #FFAF99 0%, #FF8163 100%)',
@@ -113,6 +109,7 @@ export default {
   background: #fff;
   padding: 16px 24px;
   overflow: hidden;
+
   &-header {
     display: flex;
     justify-content: space-between;
@@ -120,16 +117,19 @@ export default {
     height: 38px;
     font-weight: bold;
     font-size: 16px;
-    color: @text-darken-color;
+    color: darkblue;
     border-bottom: 1px solid #e1e1e1;
+
     .status {
       position: absolute;
       width: 100%;
       text-align: center;
       font-size: 14px;
       font-weight: normal;
+
       span {
         padding: 0 16px;
+
         &:before {
           display: inline-block;
           content: '';
@@ -139,38 +139,46 @@ export default {
           background-color: #ebebeb;
           margin-right: 6px;
         }
+
         &.assigned:before {
           background-color: #8db2f0;
         }
       }
     }
+
     .tools {
       display: flex;
       border-bottom: none;
+
       .btn-more {
         margin-left: 10px;
       }
     }
   }
+
   &-content {
     display: table;
     width: 100%;
     height: calc(100% - 38px);
     overflow: hidden;
   }
+
   &-item {
     float: left;
     height: 50%;
     padding: 16px 0 0 16px;
     overflow: hidden;
+
     &.auto {
       width: 100%;
     }
+
     .title {
       display: flex;
       font-size: 16px;
       color: rgba(0, 0, 0, 0.85);
       margin-bottom: 12px;
+
       .item-inner-icon {
         display: flex;
         justify-content: center;
@@ -178,11 +186,13 @@ export default {
         width: 40px;
         height: 40px;
       }
+
       .item-inner-name {
         margin-left: 16px;
         margin-top: 16px;
       }
     }
+
     .content {
       line-height: 20px;
       color: rgba(0, 0, 0, 0.45);
