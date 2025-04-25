@@ -68,10 +68,11 @@
 
 <script lang="ts" setup>
 // 导入已有组件
-import { ref, reactive, watch, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
+import { Modal } from 'ant-design-vue'
 import * as MicroCards from "../MicroParts/index.ts"
 
 // 导入自定义组件
@@ -545,8 +546,6 @@ const removeComponent = (type: string, keys: string[], actIndex: number = 0) => 
   } else if (type === "component") {
     state.activatedComponents.splice(actIndex, 1);
   }
-
-  store.commit("dnd/DELETE_CHECKEDKEYS", [keys.join("-")]);
 }
 
 // 更新组件列表
@@ -595,18 +594,16 @@ const activatedComponents = (_contentId: number, _activatedComponents: Component
 // ======================
 
 /** 
- * 从选中列表中添加指定节点的key 
+ * 添加选中节点的key到选中列表中，也可保持当前选中节点的key
  * 注意：此函数会直接修改外部变量checkedKeys
  * @param checked 当前选中状态
+ * @param info 被点击的节点信息
  */
-const addCheckedKeys = (checked: Parameters<Exclude<TreeProps['onCheck'], undefined>>[0]) => {
+const addCheckedKeys = (checked: Parameters<Exclude<TreeProps['onCheck'], undefined>>[0], info?: Parameters<Exclude<TreeProps['onCheck'], undefined>>[1]) => {
   if (!checked) return;
 
   const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
-  checkedKeys.value = [...onCheckedKeys];
-
-  //checkedKeys in store
-  store.commit("dnd/PUSH_CHECKEDKEYS", checkedKeys.value);
+  checkedKeys.value = [...onCheckedKeys, ...(info?.node?.eventKey ? [info.node.eventKey] : [])];
 }
 
 /** 
@@ -619,9 +616,9 @@ const deleteCheckedKeys: TreeProps['onCheck'] = (checked, info) => {
   if (!checked || !info?.node?.eventKey) return;
 
   const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
-  checkedKeys.value = onCheckedKeys.filter(
+  checkedKeys.value = [...onCheckedKeys.filter(
     (item) => item !== info.node.eventKey
-  );
+  )];
 }
 
 // 展开节点
@@ -645,10 +642,6 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
     return;
   }
 
-  const onCheckedKeys = Array.isArray(checked) ? checked : checked.checked;
-  console.log("checkedKeys", onCheckedKeys);
-  console.log("info", info);
-
   // prefix: 微件类型 classIdStr: 容器类型 componentInfo: 组件索引_组件key
   const [prefix, classIdStr, componentInfo] = info.node.eventKey.split("-");
   const [indexStr, componentKey] = componentInfo.split("_");
@@ -662,7 +655,7 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
 
   //console.log(state.activatedComponents);
   if (state.activatedComponents.find((item) => item.key === _key)) {
-    showComponentExistConfirm("list", _keys); // 微件已存在，提示是否删除
+    showComponentExistConfirm("list", _keys, checked, info); // 微件已存在，提示是否删除
     return;
   } else {
     const _component = {
@@ -716,7 +709,6 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
 
     //console.log(_component);
     addComponent(_component); // 添加组件到画布
-    addCheckedKeys(checked); // 从选中列表中添加指定节点的key
     setWorkbenchData(tempId.value, contentId.value, state.activatedComponents, oldContent.value, checkedKeys.value); // 保存已激活模板信息到sessionStorage
   }
 
@@ -768,21 +760,18 @@ const cancel = () => {
 // }
 
 // 显示确认框
-const showComponentExistConfirm = (type: string, keys: string[], actIndex: number = 0) => {
-  if (proxy) {
-    proxy.$confirm({
-      title: "提示",
-      content: "是否确认删除此组件？",
-      onOk: () => {
-        removeComponent(type, keys, actIndex);
-      },
-      onCancel: () => {
-        store.commit("dnd/PUSH_CHECKEDKEYS", [keys.join("-")]);
-      },
-    });
-  } else {
-    console.error('Proxy is null');
-  }
+const showComponentExistConfirm = (type: string, keys: string[], checked: Parameters<Exclude<TreeProps['onCheck'], undefined>>[0], info: Parameters<Exclude<TreeProps['onCheck'], undefined>>[1], actIndex: number = 0) => {
+  // 添加当前选中节点的key到选中列表中
+  addCheckedKeys(checked, info);
+
+  Modal.confirm({
+    title: "提示",
+    content: "是否确认删除此组件？",
+    onOk: () => {
+      removeComponent(type, keys, actIndex);
+      deleteCheckedKeys(checked, info)
+    },
+  });
 }
 
 // 表单提交失败回调
