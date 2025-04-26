@@ -9,9 +9,34 @@ import dnd from './src/views/Index.vue' // 导入主视图组件
 import { store } from './src/store/index.ts' // 导入状态管理
 import router from './src/router/index.ts' // 导入路由配置
 
+// 准备翻译的语言环境信息
+const messages = {
+  en: {
+    management: {
+      preview: 'Preview',
+      save: 'Save',
+      treeTitle: 'Widget List',
+      cancel: 'Cancel',
+      previewMobile: 'Preview Mobile',
+      navSenuSettings: 'Navigation Menu Settings'
+    }
+  },
+  cn: {
+    management: {
+      preview: '预览',
+      save: '保存',
+      treeTitle: '微件列表',
+      cancel: '取消',
+      previewMobile: '预览手机端',
+      navSenuSettings: '导航菜单设置'
+    }
+  }
+}
+
 // i18n配置
 const i18n = createI18n({
-  // something vue-i18n options here ...
+  locale: 'cn', // 设置地区
+  messages // 设置地区信息
 })
 
 export default {

@@ -32,7 +32,7 @@
 
           <a-form-item>
             <a-button v-if="terminalType === 0" @click.prevent="preview">
-              {{ proxy?.$t(`${langPrefix}.preview`) }}</a-button>
+              {{ $t(`${langPrefix}.preview`) }}</a-button>
           </a-form-item>
 
           <!-- <a-form-item>
@@ -49,7 +49,7 @@
           @finishFailed="onFinishFailed" v-else>
           <a-form-item>
             <a-button type="primary" v-if="terminalType === 0" html-type="submit">
-              {{ proxy?.$t(`${langPrefix}.preview`) }}</a-button>
+              {{ $t(`${langPrefix}.preview`) }}</a-button>
           </a-form-item>
           <a-form-item>
             <a-button @click="cancel">{{ proxy?.$t(`${langPrefix}.cancel`) }}</a-button>
