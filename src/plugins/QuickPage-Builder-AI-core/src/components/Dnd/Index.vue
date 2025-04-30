@@ -668,7 +668,7 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
       const { ccs } = state.activatedComponents[
         state.activatedComponents.length - 1
       ];
-
+      console.log(ccs);
       // 分割ccs字符串并转换为数字数组, 格式: [x, y, height, width], 相对grid-area: [grid-row-start / grid-column-start / grid-row-end / grid-column-end]
       const aCss = ccs.split("/").map(Number);
 
@@ -688,11 +688,17 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
         aCss[0] + _component.height <= gridRow.value + 1 &&
         aCss[3] + _component.width > gridColumn.value + 1
       ) {
+        // 找到最后行中组件的最大高度
+        const maxHeight = state.activatedComponents.reduce((prev: number, curr: ComponentItem) => {
+          if (!curr.ccs) return prev;
+          return Math.max(prev, Number(curr.ccs.split("/")[2]));
+        }, 0)
+
         _component.ccs =
-          aCss[2] +
+          maxHeight +
           "/1" +
           "/" +
-          (aCss[2] + _component.height) +
+          (maxHeight + _component.height) +
           "/" +
           (_component.width + 1);
       } else {
@@ -922,7 +928,7 @@ onUnmounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 999;
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   padding: 16px 24px;

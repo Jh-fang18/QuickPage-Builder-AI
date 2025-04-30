@@ -9,6 +9,8 @@ import dnd from './src/views/Index.vue' // 导入主视图组件
 import { store } from './src/store/index.ts' // 导入状态管理
 import router from './src/router/index.ts' // 导入路由配置
 
+import http from './src/plugins/axios/index.ts'
+
 // 准备翻译的语言环境信息
 const messages = {
   en: {
@@ -53,6 +55,9 @@ export default {
     app.use(Button)
     app.use(Modal)
     app.use(i18n)
+
+    // 挂载axios实例
+    app.config.globalProperties.$axios = http
 
     // 注册主视图组件
     app.component('dnd', dnd)
