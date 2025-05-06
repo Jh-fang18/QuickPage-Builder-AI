@@ -112,24 +112,6 @@ const _MicroCards: Record<string, any> = {
   ...microParts
 };
 
-// 响应式状态
-const loading = ref(false)
-const tempId = ref("")
-const contentId = ref(0)
-const navigationId = ref(0)
-const terminalType = ref(0) // 0: PC, 1: Mobile
-const isPreviewModel = ref(false)
-const editPreviewMobileModalVisible = ref(false)
-// const editNavSenuSettingsModalVisible = ref(false)
-const expandedKeys = ref([""])
-const autoExpandParent = ref(true)
-const gridColumn = ref(24)
-const gridRow = ref(36)
-const gridScale = ref(30)
-const gridPadding = ref(20)
-const oldContent = ref("[]")
-const tabsActiveKey = ref(0)
-
 
 // ======================
 // 计算属性
@@ -187,6 +169,23 @@ const checkedKeys = computed({
 // ======================
 // 响应式状态
 // ======================
+
+const loading = ref(false)
+const tempId = ref("")
+const contentId = ref(0)
+const navigationId = ref(0)
+const terminalType = ref(0) // 0: PC, 1: Mobile
+const isPreviewModel = ref(false)
+const editPreviewMobileModalVisible = ref(false)
+// const editNavSenuSettingsModalVisible = ref(false)
+const expandedKeys = ref([""])
+const autoExpandParent = ref(true)
+const gridColumn = ref(24)
+const gridRow = ref(36)
+const gridScale = ref(30)
+const gridPadding = ref(20)
+const oldContent = ref("[]")
+const tabsActiveKey = ref(0)
 
 const state = reactive({
   treeData: [] as TreeProps['treeData'],
@@ -854,6 +853,8 @@ onMounted(async () => {
         children: ContainersList.value,
       },
     ];
+
+    console.log(state.treeData);
 
     // 展开树列表
     expandedKeys.value = [

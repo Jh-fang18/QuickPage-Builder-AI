@@ -19,7 +19,7 @@ const actions = {}
 // mutations
 const mutations = {
   [PUSH_CHECKEDKEYS](state: State, arr: string[]) {
-    console.log(state.checkedKeys, arr)
+    //console.log(state.checkedKeys, arr)
     state.checkedKeys = [...arr]
   },
   [DELETE_CHECKEDKEYS](state: State, arr: string[]) {

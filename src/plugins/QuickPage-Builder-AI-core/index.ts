@@ -20,7 +20,8 @@ const messages = {
       treeTitle: 'Widget List',
       cancel: 'Cancel',
       previewMobile: 'Preview Mobile',
-      navSenuSettings: 'Navigation Menu Settings'
+      navSenuSettings: 'Navigation Menu Settings',
+      delete: 'Delete'
     }
   },
   cn: {
@@ -30,7 +31,8 @@ const messages = {
       treeTitle: '微件列表',
       cancel: '取消',
       previewMobile: '预览手机端',
-      navSenuSettings: '导航菜单设置'
+      navSenuSettings: '导航菜单设置',
+      delete: '删除'
     }
   }
 }
