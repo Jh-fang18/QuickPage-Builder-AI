@@ -19,6 +19,7 @@ declare module 'vue' {
     ALayoutFooter: typeof import('ant-design-vue/es')['LayoutFooter']
     ALayoutSider: typeof import('ant-design-vue/es')['LayoutSider']
     AModal: typeof import('ant-design-vue/es')['Modal']
+    ASkeleton: typeof import('ant-design-vue/es')['Skeleton']
     ASpin: typeof import('ant-design-vue/es')['Spin']
     ATabPane: typeof import('ant-design-vue/es')['TabPane']
     ATabs: typeof import('ant-design-vue/es')['Tabs']
