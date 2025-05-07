@@ -37,12 +37,17 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 // 导入已有组件
-import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance, defineAsyncComponent } from 'vue'
+import { ref, computed } from 'vue'
 import { CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons-vue';
 
 const langPrefix = "management";
+
+// 导入类型
+import type {
+  ComponentItem,
+} from '../../../types/dnd'
 
 // ======================
 // 定义props
@@ -50,7 +55,7 @@ const langPrefix = "management";
 
 const props = defineProps({
   activatedComponents: {
-    type: Array,
+    type: Array as () => ComponentItem[],
     default: () => [],
   }, // 激活组件列表
   gridColumn: {
@@ -84,107 +89,105 @@ const leftMax = ref(0);
 const rowDifferences = ref(0);
 const rowDeviationValue = ref(0);
 const terminalType = ref(0);
-const blockRefs = ref({});
+const blockRefs = ref<Record<string, any>>({});
 
 
 // ======================
 // 计算属性
 // ======================
 
+// 计算网格列数
 const getGridTemplateColumns = computed(() => {
-  let _str = "";
-  for (let i = 0; i < props.gridColumn; i++)
-    _str = _str + props.gridScale + "px" + " ";
-  return _str;
+  return Array(props.gridColumn).fill(`${props.gridScale}px`).join(' ');
 });
 
+// 计算网格行数
 const getGridTemplateRows = computed(() => {
-  let _str = "";
-  for (let i = 0; i < props.gridRow; i++)
-    _str = _str + props.gridScale + "px" + " ";
-  return _str;
+  return Array(props.gridRow).fill(`${props.gridScale}px`).join(' ');
 });
 
+// 计算网格区域
 const getGridTemplateAreas = computed(() => {
-  let _str = "";
-  for (let i = 0; i < props.gridRow; i++) {
-    _str = _str + "'";
-    for (let j = 0; j < props.gridColumn; j++) {
-      _str = _str + "g" + (i + 1) + "x" + (j + 1) + " ";
-    }
-    _str = _str + "' ";
-  }
-  return _str;
+  return Array.from({ length: props.gridRow }, (_, i) =>
+    `'${Array.from({ length: props.gridColumn }, (_, j) => `g${i + 1}x${j + 1}`).join(' ')}'`
+  ).join(' ');
 });
-
 
 
 /* ====================== 核心方法 ====================== */
 
 // 保存标题
-const saveTitle = (component) => {
-  component.editTitle = false;
-  let { title } = component;
-  component["selfServiceData"]["itemName"] = title;
-  this.updateSelfServiceItem(component["selfServiceData"]).then(() => {
-    this.save();
-    Promise.all([
-      this.getSelfServiceItemList(0, terminalType.value),
-      this.getSelfServiceItemList(1, terminalType.value),
-    ]).then((res) => {
-      if (!res) return;
+const saveTitle = (component: ComponentItem) => {
+  if (!component) return;
+  console.log(component);
+  // component.editTitle = false;
+  // let { title } = component;
+  // component["selfServiceData"]["itemName"] = title;
+  // this.updateSelfServiceItem(component["selfServiceData"]).then(() => {
+  //   this.save();
+  //   Promise.all([
+  //     this.getSelfServiceItemList(0, terminalType.value),
+  //     this.getSelfServiceItemList(1, terminalType.value),
+  //   ]).then((res) => {
+  //     if (!res) return;
 
-      (res || []).map((item, index) => {
-        let { dataList } = item;
+  //     (res || []).map((item, index) => {
+  //       let { dataList } = item;
 
-        (dataList || []).map((jtem, jndex) => {
-          this.components[index][jndex]["title"] = jtem.itemName;
-        });
-      });
+  //       (dataList || []).map((jtem, jndex) => {
+  //         this.components[index][jndex]["title"] = jtem.itemName;
+  //       });
+  //     });
 
-      this.components = [this.components[0], this.components[1]];
+  //     this.components = [this.components[0], this.components[1]];
 
-      //console.log(this.components);
-      //console.log(this.MicroCardsList);
+  //     //console.log(this.components);
+  //     //console.log(this.MicroCardsList);
 
-      //获取树列表
-      this.treeData = [
-        {
-          title: "其他类",
-          key: "0-0",
-          disabled: true,
-          children: this.MicroCardsList,
-        },
-        {
-          title: "容器类",
-          key: "0-1",
-          disabled: true,
-          children: this.ContainersList,
-        },
-      ];
-    });
-  });
+  //     //获取树列表
+  //     this.treeData = [
+  //       {
+  //         title: "其他类",
+  //         key: "0-0",
+  //         disabled: true,
+  //         children: this.MicroCardsList,
+  //       },
+  //       {
+  //         title: "容器类",
+  //         key: "0-1",
+  //         disabled: true,
+  //         children: this.ContainersList,
+  //       },
+  //     ];
+  //   });
+  // });
 }
 
-// 校准插入点后元素占位,不包括点击元素本身
-const judageLocation = (lastComponents, extraComponents) => {
-  let _lastComponents = JSON.parse(JSON.stringify(lastComponents));
-  let _extraComponents = JSON.parse(JSON.stringify(extraComponents));
+/**
+ * 校准插入点后元素占位,不包括点击元素本身
+ * @param lastComponents 平移元素
+ * @param extraComponents 下移元素
+ */
+const judgeLocation = (lastComponents: ComponentItem[], extraComponents: ComponentItem[]) => {
+  // 复制对象
+  // 防止引用类型数据的修改导致原数据的变化
+  let _lastComponents: ComponentItem[] = JSON.parse(JSON.stringify(lastComponents));
+  let _extraComponents: ComponentItem[] = JSON.parse(JSON.stringify(extraComponents));
 
   //判断是否有元素平移
   console.log("---------last----------");
   if (_lastComponents.length > 0) {
     //平移同行元素
     _lastComponents.map((item) => {
-      let _lastComponentsCcs = item.ccs
+      const _lastComponentsCcs = item.ccs
         .split("/")
         .map((item) => Number(item));
 
-      let _columnStart = props.activatedComponents[item.rowIndex - 1].ccs
+      const _columnStart = props.activatedComponents[item.rowIndex - 1].ccs
         .split("/")
         .map((item) => Number(item))[3];
 
-      blockRefs.value["block" + item.rowIndex].style.gridArea =
+      props.activatedComponents[item.rowIndex].ccs =
         _lastComponentsCcs[0] +
         "/" +
         _columnStart +
@@ -192,10 +195,6 @@ const judageLocation = (lastComponents, extraComponents) => {
         _lastComponentsCcs[2] +
         "/" +
         (_columnStart + item.width);
-
-      props.activatedComponents[item.rowIndex].ccs = blockRefs.value[
-        "block" + item.rowIndex
-      ].style.gridArea;
     });
 
     //平移完成故清空
@@ -205,18 +204,21 @@ const judageLocation = (lastComponents, extraComponents) => {
   //判断是否有元素下移
   console.log("---------extra----------");
   if (_extraComponents.length > 0) {
-    let _fristComponent = _extraComponents[0];
-    let _fristCcs = _extraComponents[0].ccs
+    // 获取下移元素中的第一个元素
+    const _fristComponent = _extraComponents[0];
+    const _fristCcs = _extraComponents[0].ccs
       .split("/")
       .map((item) => Number(item));
-    let _prevComponent = props.activatedComponents[
+    // 获取上一行元素
+    const _prevComponent = props.activatedComponents[
       _fristComponent.rowIndex - 1
     ];
-    let _prevCcs = _prevComponent.ccs
+    const _prevCcs = _prevComponent.ccs
       .split("/")
       .map((item) => Number(item));
+
     let _rowCcs = [0, 0, 0, 0];
-    let _accident = [];
+    let _accident: ComponentItem[] = [];
 
     //若第一个元素已超出Grid高度则直接删除
     if (_prevCcs[2] + _fristComponent.height > props.gridRow + 1) {
@@ -227,13 +229,13 @@ const judageLocation = (lastComponents, extraComponents) => {
       return;
     }
 
-    //获取上一行元素最大长度
+    // 获取上一行元素最大长度
     //console.log('_fristComponent', _fristComponent);
     for (let i = _fristComponent.rowIndex - 1; i >= 0; i--) {
-      let _ccs = props.activatedComponents[i].ccs
+      const _ccs = props.activatedComponents[i].ccs
         .split("/")
         .map((item) => Number(item));
-      let _prevCcs =
+      const _prevCcs =
         i !== 0
           ? props.activatedComponents[i - 1].ccs
             .split("/")
@@ -316,7 +318,7 @@ const judageLocation = (lastComponents, extraComponents) => {
         _accident.length
       );
 
-    judageLocation(_lastComponents, _extraComponents);
+    judgeLocation(_lastComponents, _extraComponents);
   }
   console.log("---------end----------");
 }
@@ -453,7 +455,7 @@ const moveTop = (e, index) => {
     }
 
     focusComponent(props.activatedComponents[index].key);
-    judageLocation([], _extraComponents);
+    judgeLocation([], _extraComponents);
 
     //清空事件
     document.onmousemove = null;
@@ -539,7 +541,7 @@ const moveRight = (e, index) => {
     }
 
     focusComponent(props.activatedComponents[index].key);
-    judageLocation(_lastComponents, _extraComponents);
+    judgeLocation(_lastComponents, _extraComponents);
 
     //清空事件
     document.onmousemove = null;
@@ -665,7 +667,7 @@ const moveDown = (e, index) => {
     }
 
     focusComponent(props.activatedComponents[index].key);
-    judageLocation([], _extraComponents);
+    judgeLocation([], _extraComponents);
 
     //清空事件
     document.onmousemove = null;
@@ -795,7 +797,7 @@ const moveLeft = (e, index) => {
     }
 
     focusComponent(props.activatedComponents[index].key);
-    judageLocation(_lastComponents, _extraComponents);
+    judgeLocation(_lastComponents, _extraComponents);
 
     //清空事件
     document.onmousemove = null;
@@ -1107,7 +1109,7 @@ const mousedown = (e, component, index) => {
 
       sortComponent();
       focusComponent(_component.key);
-      judageLocation(_lastComponents, _extraComponents);
+      judgeLocation(_lastComponents, _extraComponents);
     }
 
     //清空事件
