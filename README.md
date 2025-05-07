@@ -4,3 +4,4 @@
 Dnd目录下核心内容使用Typscript，组合式API编写。
 
 在线网址：https://quickpb.top/
+备用地址：https://quickpage-builder-ai.onrender.com/
