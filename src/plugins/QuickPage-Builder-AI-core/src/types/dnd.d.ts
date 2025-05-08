@@ -38,8 +38,6 @@ export interface ComponentItem {
   treeKey: string
   /** CSS Grid布局坐标（格式：row-start/column-start/row-end/column-end） */
   ccs: string
-  /** 新增的属性，用于记录当前组件的行索引 */
-  rowIndex: number
 }
 
 /**
