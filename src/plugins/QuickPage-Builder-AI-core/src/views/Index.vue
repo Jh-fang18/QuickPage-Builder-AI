@@ -34,6 +34,11 @@ defineProps({
 </script>
 
 <style>
+.mobile-tips {
+  display: none;
+}
+
+
 /* 判断是否为移动端 */
 @media only screen and (max-width: 768px) {
 
