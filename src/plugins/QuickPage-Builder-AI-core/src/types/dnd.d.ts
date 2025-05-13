@@ -38,7 +38,7 @@ export interface ComponentItem {
   treeKey: string
   /** CSS Grid布局坐标（格式：row-start/column-start/row-end/column-end） */
   ccs: string
-  /** 新增的属性，用于记录当前组件的行索引 */
+  /** 用于记录当前组件的行索引, 即在画布的位置顺序 */
   rowIndex: number
 }
 
@@ -64,6 +64,7 @@ export interface CardData {
   }
 }
 
+/** 组件数据规范（用于动态加载组件） */
 export interface TempInfoData extends AuthInfo {
   /** 模板ID */
   tempId: number
@@ -72,11 +73,10 @@ export interface TempInfoData extends AuthInfo {
     id: number
     content: string
   }
-  /** 模板ID */
 }
 
+/** 组件数据规范（用于动态加载组件） */
 export interface SelfServiceData extends AuthInfo {
   /** 组件列表 */
   dataList: SelfServiceDataItem[]
-  /** 模板ID */
 }

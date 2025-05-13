@@ -183,10 +183,12 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
         .split("/")
         .map((item) => Number(item));
 
+      // 计算起始列，即上一个元素宽度的结束列
       const _columnStart = props.activatedComponents[item.rowIndex - 1].ccs
         .split("/")
         .map((item) => Number(item))[3];
 
+      // 平移元素
       props.activatedComponents[item.rowIndex].ccs =
         _lastComponentsCcs[0] +
         "/" +
@@ -197,19 +199,20 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
         (_columnStart + item.width);
     });
 
-    //平移完成故清空
+    //平移完成故清空，避免重复平移，递归调用
     _lastComponents = [];
   }
 
   //判断是否有元素下移
   console.log("---------extra----------");
   if (_extraComponents.length > 0) {
-    // 获取下移元素中的第一个元素
+    // 获取需下移元素中的第一个元素
     const _fristComponent = _extraComponents[0];
-    const _fristCcs = _extraComponents[0].ccs
+    let _fristCcs = _extraComponents[0].ccs
       .split("/")
       .map((item) => Number(item));
-    // 获取上一行元素
+
+    // 获取对应第一元素的上一行元素
     const _prevComponent = props.activatedComponents[
       _fristComponent.rowIndex - 1
     ];
@@ -217,7 +220,6 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
       .split("/")
       .map((item) => Number(item));
 
-    let _rowCcs = [0, 0, 0, 0];
     let _accident: ComponentItem[] = [];
 
     //若第一个元素已超出Grid高度则直接删除
@@ -229,13 +231,15 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
       return;
     }
 
+    // 上一个最大长度，为折行后的起始点，需通过上一行元素计算
+    let _rowCcs = [0, 0, 0, 0];
+
     // 获取上一行元素最大长度
-    //console.log('_fristComponent', _fristComponent);
     for (let i = _fristComponent.rowIndex - 1; i >= 0; i--) {
       const _ccs = props.activatedComponents[i].ccs
         .split("/")
         .map((item) => Number(item));
-      const _prevCcs =
+      const _pCcs =
         i !== 0
           ? props.activatedComponents[i - 1].ccs
             .split("/")
@@ -245,39 +249,37 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
       //console.log('_prevCcs', props.activatedComponents[i - 1]);
       if (_rowCcs[2] < _ccs[2]) _rowCcs = _ccs;
 
-      if (_ccs[0] !== _prevCcs[0]) break;
+      if (_ccs[0] !== _pCcs[0]) break;
     }
 
     //console.log('_rowCcs', _rowCcs);
 
-    if (_rowCcs[2] === 0) _rowCcs = _prevCcs;
-
-    //折行第一个元素必移动位置
-    blockRefs.value["block" + _fristComponent.rowIndex].style.gridArea =
-      _rowCcs[2] +
+    // 设置第一个元素位置
+    props.activatedComponents[_fristComponent.rowIndex].ccs = _rowCcs[2] +
       "/1/" +
       (_rowCcs[2] + _fristComponent.height) +
       "/" +
       (_fristComponent.width + 1 < props.gridColumn + 1
         ? _fristComponent.width + 1
-        : props.gridColumn + 1);
-    props.activatedComponents[_fristComponent.rowIndex].ccs = blockRefs.value[
-      "block" + _fristComponent.rowIndex
-    ].style.gridArea;
+        : props.gridColumn + 1);;
 
-    //位置已变
+    // 位置已变
     _fristCcs = props.activatedComponents[_fristComponent.rowIndex].ccs
       .split("/")
       .map((item) => Number(item));
-    //位置已移动，故清除
+
+    // 位置已移动，故从原需下移列表中清除
     _extraComponents.splice(0, 1);
 
-    //行累计宽度
-    let _lastWidth = 0;
+    // 判断是否还有需平移和下移元素
+    if (_extraComponents.length === 0) return;
 
-    //设置之后的元素位置
+    // 行累计宽度, 默认为第一个元素宽度
+    let _lastWidth = _fristCcs[3];
+
+    // 设置之后的元素位置为平移元素，超过Grid宽度则仍为下一行元素
     _extraComponents = _extraComponents.filter((item) => {
-      if (_fristCcs[3] + item.width + _lastWidth <= props.gridColumn + 1) {
+      if (item.width + _lastWidth <= props.gridColumn + 1) {
         item.ccs =
           _rowCcs[2] +
           "/1/" +
@@ -290,7 +292,7 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
 
       _lastWidth = item.width + _lastWidth;
 
-      return _fristCcs[3] + _lastWidth > props.gridColumn + 1;
+      return _lastWidth > props.gridColumn + 1;
     });
 
     _extraComponents = _extraComponents.filter((item) => {
