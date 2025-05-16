@@ -38,6 +38,12 @@
 </template>
 
 <script lang="ts" setup>
+// ======================
+// 注意事项
+// ======================
+// grid长宽定义起始点为开始点，结束点为最后一格的下一个故需要+1
+
+
 // 导入已有组件
 import { ref, computed } from 'vue'
 import { CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons-vue';
@@ -164,17 +170,86 @@ const saveTitle = (component: ComponentItem) => {
 }
 
 /**
+ * 根据已激活模块的数组顺序，更新rowIndex
+ */
+const updateRowIndex = () => {
+  props.activatedComponents.map((item, index) => {
+    item.rowIndex = index;
+  });
+}
+
+/** 
+ * 当前元素位置信息转换成Number数组
+ * @param ccs 元素位置String类型，如：1/1/3/3
+ * @returns 元素位置Number数组
+ */
+const getComponentCss = (ccs: string) => {
+  return ccs.split("/").map((item) => Number(item));
+}
+
+/** 
+ * 获取当前元素上一行元素最大长度
+ * @param currentComponent 当前元素
+ * @returns 上一行元素最大长度
+ */
+const getLastRowMaxHeight = (currentComponent: ComponentItem): number[] => {
+  let _rowCcs = [0, 0, 0, 0]; // 上一行元素最大长度， 初始值
+  let _fristRowIndex = currentComponent.rowIndex; // 当前元素rowIndex
+  console.log("当前元素rowIndex", currentComponent.rowIndex);
+
+  // 获取当前元素所在行的第一个元素的rowIndex
+  for (let i = currentComponent.rowIndex; i >= 0; i--) {
+    const _ccs = getComponentCss(props.activatedComponents[i].ccs) // 当前元素位置
+    const _pCcs =
+      i !== 0
+        ? getComponentCss(props.activatedComponents[i - 1].ccs)
+        : [0, 0, 0, 0]; // 上一个元素位置
+    if (_ccs[0] !== _pCcs[0]) {
+      _fristRowIndex = i;
+      break;
+    }
+  }
+
+  console.log("当前元素所在行的第一个元素的rowIndex", _fristRowIndex);
+
+  // 获取上一行元素最大长度
+  for (let i = _fristRowIndex - 1; i >= 0; i--) {
+    const _ccs = props.activatedComponents[i].ccs
+      .split("/")
+      .map((item) => Number(item)); // 当前元素位置
+    const _pCcs =
+      i !== 0
+        ? props.activatedComponents[i - 1].ccs
+          .split("/")
+          .map((item) => Number(item))
+        : [0, 0, 0, 0]; // 上一个元素位置
+    //console.log('_ccs', props.activatedComponents[i]);
+    //console.log('_prevCcs', props.activatedComponents[i - 1]);
+    if (_rowCcs[2] < _ccs[2]) _rowCcs = _ccs;
+
+    if (_ccs[0] !== _pCcs[0]) break;
+  }
+
+  return _rowCcs;
+}
+
+/**
  * 校准插入点后元素占位,不包括点击元素本身
  * @param lastComponents 平移元素
  * @param extraComponents 下移元素
  */
 const judgeLocation = (lastComponents: ComponentItem[], extraComponents: ComponentItem[]) => {
-  // 复制对象
-  // 防止引用类型数据的修改导致原数据的变化
+  // 复制对象，防止引用类型数据的修改导致原数据的变化
   let _lastComponents: ComponentItem[] = JSON.parse(JSON.stringify(lastComponents));
   let _extraComponents: ComponentItem[] = JSON.parse(JSON.stringify(extraComponents));
 
-  //判断是否有元素平移
+  //console.log("_lastComponents", _lastComponents);
+  //console.log("_extraComponents", _extraComponents);
+
+  // 按rowIndex排序
+  updateRowIndex();
+
+  // 判断是否有元素平移
   console.log("---------last----------");
   if (_lastComponents.length > 0) {
     //平移同行元素
@@ -220,9 +295,7 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
       .split("/")
       .map((item) => Number(item));
 
-    let _accident: ComponentItem[] = [];
-
-    //若第一个元素已超出Grid高度则直接删除
+    // 若第一个元素已超出Grid高度则直接删除, 并返回
     if (_prevCcs[2] + _fristComponent.height > props.gridRow + 1) {
       props.activatedComponents.splice(
         _fristComponent.rowIndex,
@@ -232,27 +305,9 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
     }
 
     // 上一个最大长度，为折行后的起始点，需通过上一行元素计算
-    let _rowCcs = [0, 0, 0, 0];
+    let _rowCcs = getLastRowMaxHeight(_fristComponent);
 
-    // 获取上一行元素最大长度
-    for (let i = _fristComponent.rowIndex - 1; i >= 0; i--) {
-      const _ccs = props.activatedComponents[i].ccs
-        .split("/")
-        .map((item) => Number(item));
-      const _pCcs =
-        i !== 0
-          ? props.activatedComponents[i - 1].ccs
-            .split("/")
-            .map((item) => Number(item))
-          : [0, 0, 0, 0];
-      //console.log('_ccs', props.activatedComponents[i]);
-      //console.log('_prevCcs', props.activatedComponents[i - 1]);
-      if (_rowCcs[2] < _ccs[2]) _rowCcs = _ccs;
-
-      if (_ccs[0] !== _pCcs[0]) break;
-    }
-
-    //console.log('_rowCcs', _rowCcs);
+    console.log('_rowCcs', _rowCcs);
 
     // 设置第一个元素位置
     props.activatedComponents[_fristComponent.rowIndex].ccs = _rowCcs[2] +
@@ -280,13 +335,6 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
     // 设置之后的元素位置为平移元素，超过Grid宽度则仍为下一行元素
     _extraComponents = _extraComponents.filter((item) => {
       if (item.width + _lastWidth <= props.gridColumn + 1) {
-        item.ccs =
-          _rowCcs[2] +
-          "/1/" +
-          (_rowCcs[2] + item.height) +
-          "/" +
-          1 +
-          item.width;
         _lastComponents.push(item);
       }
 
@@ -295,38 +343,16 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
       return _lastWidth > props.gridColumn + 1;
     });
 
-    _extraComponents = _extraComponents.filter((item) => {
-      if (
-        _rowCcs[2] +
-        props.activatedComponents[_fristComponent.rowIndex].height +
-        item.height >
-        props.gridRow + 1
-      ) {
-        _accident.push(item);
-      }
-
-      return (
-        _rowCcs[2] +
-        props.activatedComponents[_fristComponent.rowIndex].height +
-        item.height <=
-        props.gridRow + 1
-      );
-    });
-
-    console.log("_accident", _accident);
-    if (_accident.length > 0)
-      props.activatedComponents.splice(
-        _accident[0].rowIndex,
-        _accident.length
-      );
-
     judgeLocation(_lastComponents, _extraComponents);
   }
   console.log("---------end----------");
 }
 
-// 组件聚焦
-const focusComponent = (key) => {
+/** 
+ * 组件聚焦
+ * @param key 组件的key值
+ */
+const focusComponent = (key: string) => {
   props.activatedComponents.map((item, index) => {
     if (item.key === key) {
       blockRefs.value["block" + index].style.borderColor = " red";
@@ -338,7 +364,9 @@ const focusComponent = (key) => {
   });
 }
 
-// 组件排序
+/** 
+ * 组件排序
+ */
 const sortComponent = () => {
   props.activatedComponents.sort((x, y) => {
     let _xCcs = x.ccs.split("/").map((item) => Number(item));
@@ -355,40 +383,48 @@ const sortComponent = () => {
   });
 }
 
-// 组件向上移动
-const moveTop = (e, index) => {
-  let oBlock = blockRefs.value["block" + index]; //获取当前点击组件
+/** 
+ * 组件向上扩大
+ * @param e 鼠标事件
+ * @param index 组件索引
+ */
+const moveTop = (e: MouseEvent, index: number) => {
+  const oBlock = blockRefs.value["block" + index]; // 获取当前点击组件
   //let gDiv = oBlock.parentElement; //获取点击元素的父级元素
-  let disY = e.clientY - 0;
-  let oTop = 0;
+  let disY = e.clientY - 0; // 获取鼠标点击的位置
+  let oTop: string | number = 0; // 初始化oTop，用于存储组件的top值
 
-  oBlock.style.borderColor = " red";
-  oBlock.style.zIndex = 999;
+  oBlock.style.borderColor = " red"; // 设置边框颜色为红色
+  oBlock.style.zIndex = 999; // 设置z-index为999
 
+  // 监听鼠标移动事件
   document.onmousemove = (e) => {
-    if (oTop === "$") return;
-    let top = e.clientY - disY;
+    if (oTop === "$") return // 停止移动
+    else oTop = Number(oTop);
+
+    const gridUnit = props.gridScale + props.gridPadding; // 计算每个格子的宽度
+    const minHeight = props.activatedComponents[index].minHeight * gridUnit - props.gridPadding; // 计算最小高度
+
+    let top: string | number = e.clientY - disY;
+
     if (oTop < top) {
-      //减去一个gridPadding才是组件的大小
-      let _rminHeight =
-        props.activatedComponents[index].minHeight *
-        (props.gridScale + props.gridPadding) -
-        props.gridPadding;
-      let _cHeight = oBlock.offsetHeight + (oTop - top);
-      if (_cHeight >= _rminHeight) {
-        oBlock.style.height = _cHeight + "px";
-        oBlock.style.top = top + "px";
+      const newHeight = oBlock.offsetHeight + (oTop - top);
+      if (newHeight >= minHeight) {
+        oBlock.style.height = `${newHeight}px`;
+        oBlock.style.top = `${top}px`;
       } else {
-        oBlock.style.height = _rminHeight + "px";
+        oBlock.style.height = `${minHeight}px`;
         top = "$";
       }
     } else {
-      oBlock.style.height = oBlock.offsetHeight - (top - oTop) + "px";
-      oBlock.style.top = top + "px";
+      oBlock.style.height = `${oBlock.offsetHeight - (top - oTop)}px`;
+      oBlock.style.top = `${top}px`;
     }
 
     oTop = top;
   };
+
+  // 监听鼠标抬起事件
   document.onmouseup = () => {
     //需加上一个gridPadding才是计算高度
     let _height = Math.ceil(
@@ -399,22 +435,18 @@ const moveTop = (e, index) => {
         oBlock.offsetTop / (props.gridScale + props.gridPadding)
       );
 
-    if (oTop === "$") {
-      _top = _top + 1;
-    } else {
-      //超过边界，固定为1
-      if (_top <= 0) _top = 1;
-    }
+    // 停止移动，将top值加1，防止出现0高度的情况
+    if (oTop === "$") _top = _top + 1; else if (_top <= 0) _top = 1;
 
-    let _componentCcs = props.activatedComponents[index].ccs
+    const _componentCcs = props.activatedComponents[index].ccs
       .split("/")
-      .map((item) => Number(item));
+      .map((item: string) => Number(item));
     let _rowCcs = [0, 0, 0, 0];
     let _gridArea = oBlock.style.gridArea
       .split("/")
-      .map((item) => Number(item));
+      .map((item: string) => Number(item));
 
-    //获取上一行元素最大长度
+    // 获取上一行元素最大长度
     for (let i = index - 1; i >= 0; i--) {
       let _ccs = props.activatedComponents[i].ccs
         .split("/")

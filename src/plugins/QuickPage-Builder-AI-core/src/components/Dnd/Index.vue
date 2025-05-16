@@ -363,6 +363,7 @@ const fetchComponentData = async () => {
             selfServiceData: {} as SelfServiceDataItem,
             treeKey: '',
             ccs: '',
+            rowIndex: 0,
           };
         });
 
@@ -641,7 +642,7 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
     return;
   }
 
-  // prefix: 微件类型 classIdStr: 容器类型 componentInfo: 组件索引_组件key
+  // tree被点击当前key的数据结构, prefix: 微件类型 classIdStr: 容器类型 componentInfo: 组件索引_组件key
   const [prefix, classIdStr, componentInfo] = info.node.eventKey.split("-");
   const [indexStr, componentKey] = componentInfo.split("_");
   if (!componentKey) return; // 没有componentKey，直接返回
@@ -667,7 +668,7 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
       const { ccs } = state.activatedComponents[
         state.activatedComponents.length - 1
       ];
-      console.log(ccs);
+
       // 分割ccs字符串并转换为数字数组, 格式: [x, y, height, width], 相对grid-area: [grid-row-start / grid-column-start / grid-row-end / grid-column-end]
       const aCss = ccs.split("/").map(Number);
 
@@ -712,7 +713,11 @@ const onCheck: TreeProps['onCheck'] = (checked, info) => {
         "/" +
         (_component.width + 1);
 
-    //console.log(_component);
+
+    // 计算组件的rowIndex，实际为插入元素个数-1，故与已激活组件为添加自身前数组长度相同
+    _component.rowIndex = state.activatedComponents.length;
+
+    console.log(_component);
     addComponent(_component); // 添加组件到画布
     setWorkbenchData(tempId.value, contentId.value, state.activatedComponents, oldContent.value, checkedKeys.value); // 保存已激活模板信息到sessionStorage
   }
@@ -884,6 +889,7 @@ onUnmounted(() => {
 
 .ant-layout {
   width: 100%;
+  padding-bottom: 45px;
 }
 
 .ant-layout-sider {
