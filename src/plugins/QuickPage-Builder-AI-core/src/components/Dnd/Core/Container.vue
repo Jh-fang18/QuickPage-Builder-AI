@@ -189,7 +189,52 @@ const getComponentCss = (ccs: string) => {
 
 /** 
  * 根据当前元素获取上一行第一个元素
+ * @param currentComponent 当前元素
+ * @returns 上一行第一个元素
 */
+const getPrevRowFirstComponent = (currentComponent: ComponentItem): ComponentItem => {
+  // 上一行元素
+  let _prevRowComponent: ComponentItem = props.activatedComponents[currentComponent.rowIndex];
+
+  // 上一行第一个元素
+  let _prevRowFirstComponent: ComponentItem = props.activatedComponents[currentComponent.rowIndex];
+
+  console.log("当前元素", currentComponent);
+  for (let i = currentComponent.rowIndex; i > 0; i--) {
+    const _ccs = getComponentCss(props.activatedComponents[i].ccs) // 当前元素位置
+    const _pCcs =
+      i !== 0
+        ? getComponentCss(props.activatedComponents[i - 1].ccs)
+        : [0, 0, 0, 0]; // 上一个元素位置
+
+    if (_ccs[0] === _pCcs[0]) {
+      因为没有位移需要宽度判断是否已经折行
+      _prevRowComponent = props.activatedComponents[i - 1];
+      break
+    }
+
+    if (_ccs[0] !== _pCcs[0]) {
+      _prevRowComponent = props.activatedComponents[i - 1];
+      break
+    }
+  }
+
+  console.log("上一行元素", _prevRowComponent);
+
+  for (let i = _prevRowComponent.rowIndex; i > 0; i--) {
+    const _ccs = getComponentCss(props.activatedComponents[i].ccs) // 当前元素位置
+    const _pCcs =
+      i !== 0
+        ? getComponentCss(props.activatedComponents[i - 1].ccs)  // 上一个元素位置
+        : [0, 0, 0, 0];
+    if (_ccs[0] !== _pCcs[0]) {
+      _prevRowFirstComponent = props.activatedComponents[i];
+      break
+    }
+  }
+
+  return _prevRowFirstComponent;
+}
 
 /** 
  * 获取当前元素所在行元素最大长度
@@ -203,7 +248,7 @@ const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
   console.log("当前元素rowIndex", currentComponent.rowIndex);
 
   // 获取当前元素所在行的第一个元素的rowIndex
-  for (let i = currentComponent.rowIndex; i >= 0; i--) {
+  for (let i = currentComponent.rowIndex; i > 0; i--) {
     const _ccs = getComponentCss(props.activatedComponents[i].ccs) // 当前元素位置
     const _pCcs =
       i !== 0
@@ -240,7 +285,7 @@ const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
 /**
  * 校准插入点后元素占位,不包括点击元素本身
  * @param lastComponents 平移元素，且其前必有下移元素
- * @param extraComponents 下移元素，且其第一个元素一定在行头
+ * @param extraComponents 下移元素，包括拖动大小时已在下行元素，且其第一个元素一定在行头
  */
 const judgeLocation = (lastComponents: ComponentItem[], extraComponents: ComponentItem[]) => {
   // 复制对象，防止引用类型数据的修改导致原数据的变化
@@ -281,18 +326,18 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
         (_columnStart + item.width);
     });
 
-    //平移完成故清空，避免重复平移，递归调用
+    // 平移完成故清空，避免重复平移，递归调用
     _lastComponents = [];
   }
 
-  //判断是否有元素下移
+  // 判断是否有元素下移
   console.log("---------extra----------");
   if (_extraComponents.length > 0) {
     // 获取需下移元素中的第一个元素，此时元素还未折行，数据仍是原数据
     const _fristComponent = _extraComponents[0];
     let _fristCcs = getComponentCss(_fristComponent.ccs);
     console.log('_fristComponent', _fristComponent);
-    // 获取对应第一元素的上一行元素
+    // 获取对应第一元素的上一个元素
     const _prevComponent = props.activatedComponents[
       _fristComponent.rowIndex - 1
     ];
@@ -309,9 +354,9 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
     }
 
     // 获取上一行最大长度，为折行后的起始点，需通过上一行元素计算
-    let _rowCcs = getRowMaxHeight(_fristComponent);
+    let _rowCcs = getRowMaxHeight(getPrevRowFirstComponent(_fristComponent));
 
-    console.log('_rowCcs', _rowCcs);
+    // console.log('_rowCcs', _rowCcs);
 
     // 设置第一个元素位置
     props.activatedComponents[_fristComponent.rowIndex].ccs =
@@ -348,9 +393,9 @@ const judgeLocation = (lastComponents: ComponentItem[], extraComponents: Compone
 
     judgeLocation(_lastComponents, _extraComponents);
   }
-  // console.log('_lastComponents', _lastComponents);
-  // console.log('_extraComponents', _extraComponents);
   console.log("---------end----------");
+  console.log('_lastComponents', _lastComponents);
+  console.log('_extraComponents', _extraComponents);
 }
 
 /** 
