@@ -859,7 +859,7 @@ onMounted(async () => {
       },
     ];
 
-    console.log(state.treeData);
+    // console.log(state.treeData);
 
     // 展开树列表
     expandedKeys.value = [
