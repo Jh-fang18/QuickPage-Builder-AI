@@ -169,6 +169,10 @@ const saveTitle = (component: ComponentItem) => {
   // });
 }
 
+// ======================
+// 工具函数
+// ======================
+
 /**
  * 根据已激活模块的数组顺序，更新rowIndex
  */
@@ -314,6 +318,8 @@ const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
 
   return _rowCcs;
 }
+
+/** end **/
 
 /**
  * 校准插入点后元素占位,不包括点击元素本身
@@ -499,7 +505,7 @@ const moveTop = (e: MouseEvent, index: number) => {
         oBlock.style.top = `${top}px`;
       } else {
         oBlock.style.height = `${minHeight}px`;
-        top = "$";
+        top = "$"; // 标记停止移动
       }
     } else {
       oBlock.style.height = `${oBlock.offsetHeight - (top - oTop)}px`;
@@ -523,18 +529,8 @@ const moveTop = (e: MouseEvent, index: number) => {
     // 停止移动，将top值加1，防止出现0高度的情况
     if (oTop === "$") _top = _top + 1; else if (_top <= 0) _top = 1;
 
-    const _componentCcs = getComponentCss(props.activatedComponents[index].ccs);
-    let _rowCcs = [0, 0, 0, 0];
     let _gridArea = getComponentCss(oBlock.style.gridArea)
 
-    // 根据当前元素位置获取本行元素最大长度
-    _rowCcs = getRowMaxHeight(props.activatedComponents[index])
-
-    // console.log('_gridArea[0]', _gridArea[0]);
-    // console.log('_height', _height);
-
-    if (_rowCcs[2] === _gridArea[0]) _gridArea[0] = _rowCcs[2];
-    else _gridArea[0] = _top;
     _gridArea[2] = _gridArea[0] + _height;
     // console.log(_gridArea);
 
@@ -546,8 +542,9 @@ const moveTop = (e: MouseEvent, index: number) => {
     props.activatedComponents[index].ccs = _gridArea.join("/"); // 更新元素大小
     props.activatedComponents[index].height = _gridArea[2] - _gridArea[0]; // 更新元素高度
 
-    //======== 处理微件后的元素 ========//
+    //======== 处理当前元素后的元素 ========//
 
+    const _componentCcs = getComponentCss(props.activatedComponents[index].ccs);
     let _extraComponents = [];
 
     for (let i = index + 1; i < props.activatedComponents.length; i++) {
@@ -556,7 +553,7 @@ const moveTop = (e: MouseEvent, index: number) => {
         _extraComponents.push({
           ...props.activatedComponents[i],
         });
-        console.log("_extraComponents", props.activatedComponents[i]);
+        // console.log("_extraComponents", props.activatedComponents[i]);
       }
     }
 
@@ -613,10 +610,11 @@ const moveRight = (e: MouseEvent, index: number) => {
     // 浏览器补丁
     oBlock.style.width = "100%"; //必须设回百分比，不然grid-area无法起效
 
+    // 更新元素状态
     props.activatedComponents[index].ccs = _gridArea.join("/");
     props.activatedComponents[index].width = _gridArea[3] - _gridArea[1];
 
-    //======== 处理微件后的元素 ========//
+    //======== 处理当前元素后的元素 ========//
 
     const _componentCcs = getComponentCss(props.activatedComponents[index].ccs)
     let _lastComponents = [];
@@ -635,12 +633,12 @@ const moveRight = (e: MouseEvent, index: number) => {
           ...props.activatedComponents[i]
         });
         _lastWidth = props.activatedComponents[i].width + _lastWidth;
-        console.log('_lastComponents', props.activatedComponents[i]);
+        // console.log('_lastComponents', props.activatedComponents[i]);
       } else {
         _extraComponents.push({
           ...props.activatedComponents[i]
         });
-        console.log('_extraComponents', props.activatedComponents[i]);
+        // console.log('_extraComponents', props.activatedComponents[i]);
       }
     }
 
