@@ -660,7 +660,9 @@ const moveRight = (e: MouseEvent, index: number) => {
         if (_ccs[0] < _prevCcs[2]) { // 当前元素行起点小于上一个元素行终点
           if (_prevCcs[3] === _ccs[1]) // 上一个元素列终点等于当前元素列起点
             _lastWidth += props.activatedComponents[i].width;
-          else if (_prevCcs[3] - _transDistance === _ccs[1]) // 上一个元素为被拖动元素时，需要减去拖动距离
+          // 上一个元素为被拖动元素时，需要减去拖动距离
+          // 因当前元素还未移动
+          else if (_prevCcs[3] - _transDistance === _ccs[1])
             _lastWidth += props.activatedComponents[i].width;
           else if (_prevCcs[3] > _ccs[1]) { // 上一个元素列终点大于当前元素列起点
             if (_prevCcs[3] > _ccs[3]) // 上一个元素列终点大于当前元素列终点
@@ -669,14 +671,13 @@ const moveRight = (e: MouseEvent, index: number) => {
           console.log('_lastWidth', _lastWidth);
         } else { // 当前元素行起点大于上一个元素行终点
           _lastWidth = _componentCcs[3] - 1; // 折行，重置累计宽度
-          if (_componentCcs[3] - 1 === _ccs[0])
+          if (_componentCcs[3] - _transDistance === _ccs[1])
             _lastWidth += props.activatedComponents[i].width;
           console.log('_extraWidth', _lastWidth);
         }
 
-        未碰边缘无需移动
-
-        if (_lastWidth <= props.gridColumn) {
+        if (_lastWidth + 1 > _ccs[1] &&
+          _lastWidth <= props.gridColumn) {
           _lastComponents.push({
             ...props.activatedComponents[i]
           });
