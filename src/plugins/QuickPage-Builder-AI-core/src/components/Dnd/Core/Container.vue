@@ -384,8 +384,6 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
     // 第一元素列起点为1，无需下移，后续也不用处理，直接返回
     if (_fristCcs[1] === 1) return
 
-
-
     // 获取对应第一元素的上一个元素
     const _prevComponent = props.activatedComponents[
       _fristComponent.rowIndex - 1
@@ -521,7 +519,7 @@ const moveTop = (e: MouseEvent, index: number) => {
     let top: string | number = e.clientY - disY;
 
     if (oTop < top) {
-      const newHeight = oBlock.offsetHeight + (oTop - top);
+      const newHeight = oBlock.offsetHeight + (top - oTop);
       if (newHeight >= minHeight) {
         oBlock.style.height = `${newHeight}px`;
         oBlock.style.top = `${top}px`;
@@ -592,27 +590,40 @@ const moveTop = (e: MouseEvent, index: number) => {
 // 微件向右移动
 const moveRight = (e: MouseEvent, index: number) => {
   const oBlock = blockRefs.value["block" + index]; //获取当前点击微件
-  const oWidth = props.activatedComponents[index].width; //获取当前点击微件的宽度
+  const oCcs = getComponentCcs(props.activatedComponents[index].ccs); //获取当前点击微件的ccs
   let _transDistance = 0; // 元素扩大距离
   let disX = e.clientX - 0;
-  let oLeft = 0;
+  let oLeft: string | number = 0;
 
   oBlock.style.borderColor = " red";
   oBlock.style.zIndex = 999;
 
   // 控制微件宽度
   document.onmousemove = (e) => {
-    let left = e.clientX - disX;
+    if (oLeft === "$") return
+    else oLeft = Number(oLeft);
+
+    let left: string | number = e.clientX - disX;
+
+    const _cWidth = oBlock.offsetWidth + (left - oLeft);
+
     if (oLeft < left) {
-      oBlock.style.width = oBlock.offsetWidth - (oLeft - left) + "px";
+      oBlock.style.width = _cWidth + "px";
     } else {
       let _rminWidth =
         props.activatedComponents[index].minWidth *
         (props.gridScale + props.gridPadding) -
         props.gridPadding;
-      let _cWidth = oBlock.offsetWidth + (left - oLeft);
-      oBlock.style.width =
-        _cWidth < _rminWidth ? _rminWidth : _cWidth + "px";
+      if (_cWidth <= _rminWidth) {
+        oBlock.style.width = _rminWidth + "px";
+      } else if (_cWidth >= props.gridColumn * (props.gridScale + props.gridPadding)
+        - props.gridPadding) {
+        // 元素宽度超过最大宽度
+        oBlock.style.width = props.gridColumn * (props.gridScale + props.gridPadding)
+          - props.gridPadding + "px";
+      } else {
+        oBlock.style.width = _cWidth + "px";
+      }
     }
 
     oLeft = left;
@@ -641,13 +652,13 @@ const moveRight = (e: MouseEvent, index: number) => {
     //======== 处理当前元素后的元素 ========//
 
     const _componentCcs =
-      getComponentCcs(props.activatedComponents[index].ccs) // 当前元素的ccs
+      getComponentCcs(props.activatedComponents[index].ccs) // 当前元素的ccs，已经被变形
     let _lastComponents = []; // 需要平移的元素
     let _extraComponents = []; // 需下移的元素
     let _lastWidth = _componentCcs[3] - 1; // ccs格式为1/1/3/3 故需-1
     let _currentIndex = index;
-    _transDistance = _gridArea[3] - oWidth - 1;
-
+    //需要减去变型元素前离开画布边缘的距离
+    _transDistance = _gridArea[3] - (oCcs[3] - oCcs[1]) - 1 - (_gridArea[1] - 1);
 
     for (let i = _currentIndex + 1; i < props.activatedComponents.length; i++) {
       // 当前元素后的ccs
@@ -661,16 +672,18 @@ const moveRight = (e: MouseEvent, index: number) => {
           if (_componentCcs[1] !== _prevCcs[1] && _prevCcs[3] === _ccs[1]) // 上一个元素列终点等于当前元素列起点
             _lastWidth += props.activatedComponents[i].width;
           // 上一个元素为被拖动元素时，需要减去拖动距离
-          // 因当前元素还未移动
           else if (_componentCcs[1] === _prevCcs[1] && _prevCcs[3] - _transDistance === _ccs[1])
             _lastWidth += props.activatedComponents[i].width;
           else if (_prevCcs[3] > _ccs[1]) { // 上一个元素列终点大于当前元素列起点
-            if (_prevCcs[3] > _ccs[3]) // 上一个元素列终点大于当前元素列终点
-              _lastWidth += _prevCcs[3] - _ccs[3]; // 累计宽度等于上一个元素列终点减去当前元素列终点
+            if (_componentCcs[1] !== _prevCcs[1] && _prevCcs[3] < _ccs[3]) // 上一个元素列终点大于当前元素列终点
+              _lastWidth += _ccs[3] - _prevCcs[3]; // 累计宽度等于当前元素列终点减去上一个元素列终点
+            if (_componentCcs[1] === _prevCcs[1] && _prevCcs[3] < _ccs[3])
+              _lastWidth += props.activatedComponents[i].width
           }
           console.log('_lastWidth', _lastWidth);
         } else { // 当前元素行起点大于上一个元素行终点
           _lastWidth = _componentCcs[3] - 1; // 折行，重置累计宽度
+
           if (_componentCcs[3] - _transDistance === _ccs[1])
             _lastWidth += props.activatedComponents[i].width;
           console.log('_extraWidth', _lastWidth);
@@ -678,6 +691,7 @@ const moveRight = (e: MouseEvent, index: number) => {
 
         console.log('_transDistance', _transDistance);
 
+        // 累计宽度大于当前元素起点，需要平移
         if (_lastWidth + 1 > _ccs[1] &&
           _lastWidth <= props.gridColumn) {
           _lastComponents.push({
@@ -695,8 +709,27 @@ const moveRight = (e: MouseEvent, index: number) => {
       }
     }
 
+
+    if (_lastComponents.length > 0) {
+      // 需使用未变型前的行头元素ccs
+      let stance = getComponentCcs(_lastComponents[0].ccs)[1] - oCcs[3];
+
+      for (let i = 1; i < _lastComponents.length; i++) {
+        const _ccs = getComponentCcs(_lastComponents[i].ccs);
+        let _stance = _ccs[1] - oCcs[3]
+        if (_stance < stance) {
+          stance = _stance;
+        };
+      }
+
+      _transDistance -= stance;
+      console.log("stance", stance);
+    }
+
+
     // 校准元素位置
-    judgeLocation(_lastComponents, _transDistance, _extraComponents);
+    if (_lastComponents.length > 0 || _extraComponents.length > 0)
+      judgeLocation(_lastComponents, _transDistance, _extraComponents);
 
     // 清空事件
     document.onmousemove = null;
