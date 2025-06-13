@@ -495,9 +495,9 @@ const moveTop = (e: MouseEvent, index: number) => {
     const minHeight = props.activatedComponents[index].minHeight * gridUnit - props.gridPadding; // 计算最小高度
 
     let top: string | number = e.clientY - disY;
-
     if (oTop < top) {
       const newHeight = oBlock.offsetHeight + (top - oTop);
+      console.log(newHeight);
       if (newHeight >= minHeight) {
         oBlock.style.height = `${newHeight}px`;
         oBlock.style.top = `${top}px`;
@@ -506,8 +506,7 @@ const moveTop = (e: MouseEvent, index: number) => {
         top = "$"; // 标记停止移动
       }
     } else {
-      oBlock.style.height = `${oBlock.offsetHeight - (top - oTop)}px`;
-      oBlock.style.top = `${top}px`;
+      top = "$"; // 标记停止移动
     }
 
     oTop = top;
@@ -630,8 +629,8 @@ const moveRight = (e: MouseEvent, index: number) => {
     //======== 处理当前元素后的元素 ========//
 
     const _componentCcs =
-      getComponentCcs(props.activatedComponents[index].ccs) // 当前元素的ccs，已经被变形
-    let _lastComponents = []; // 需要平移的元素
+      getComponentCcs(props.activatedComponents[index].ccs) // 已经被变形
+    let _lastComponents = []; // 需平移的元素
     let _extraComponents = []; // 需下移的元素
     let _lastWidth = _componentCcs[3] - 1; // ccs格式为1/1/3/3 故需-1
     let _currentIndex = index;
@@ -644,8 +643,9 @@ const moveRight = (e: MouseEvent, index: number) => {
       let _prevCcs = getComponentCcs(props.activatedComponents[i - 1].ccs)
       console.log('当前元素', _ccs);
       console.log('上一个元素', _prevCcs);
-      // 若当前元素行起点小于拖动元素行终点，则为同一行元素
-      if (_componentCcs[2] > _ccs[0]) {
+
+      // 若当前元素行起点小于拖动元素行终点，且列终点大于等于拖动元素原始列终点，则为同一行元素
+      if (_componentCcs[2] > _ccs[0] && oCcs[3] <= _ccs[1]) {
         if (_ccs[0] < _prevCcs[2]) { // 当前元素行起点小于上一个元素行终点
           if (_componentCcs[1] !== _prevCcs[1] && _prevCcs[3] === _ccs[1]) // 上一个元素列终点等于当前元素列起点
             _lastWidth += props.activatedComponents[i].width;
@@ -670,6 +670,7 @@ const moveRight = (e: MouseEvent, index: number) => {
         console.log('_transDistance', _transDistance);
 
         // 累计宽度大于当前元素起点，需要平移
+        // 超过最大宽度，需要下移
         if (_lastWidth + 1 > _ccs[1] &&
           _lastWidth <= props.gridColumn) {
           _lastComponents.push({
@@ -685,7 +686,7 @@ const moveRight = (e: MouseEvent, index: number) => {
       }
     }
 
-
+    // 调整平移距离，减去元素左侧与变形元素的距离，平移后因与变形元素接触
     if (_lastComponents.length > 0) {
       // 需使用未变型前的行头元素ccs
       let stance = getComponentCcs(_lastComponents[0].ccs)[1] - oCcs[3];
