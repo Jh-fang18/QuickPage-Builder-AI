@@ -523,8 +523,7 @@ const moveTop = (e: MouseEvent, index: number) => {
 
     // 拖动时需判断是否又拉长了高度
     if (oTop === "$") {
-      console.log('top', top);
-      if (top < 0) oTop = 0;
+      if (top < 0 && Math.abs(top) < _maxTop) oTop = top;
       else return
     }
     else oTop = Number(oTop);
@@ -537,18 +536,21 @@ const moveTop = (e: MouseEvent, index: number) => {
       newHeight = oBlock.offsetHeight + (oTop - top);
 
     if (oTop < top) {
-      if (newHeight >= minHeight) {
+      if (newHeight > minHeight) {
         oBlock.style.height = `${newHeight}px`;
         oBlock.style.top = `${top}px`;
       } else {
         oBlock.style.height = `${minHeight}px`;
         top = "$"; // 标记停止移动
-        console.log('1', String(top))
       }
     } else {
-      if (top <= 0 && Math.abs(top) >= _maxTop) return;
+
       oBlock.style.height = `${newHeight}px`;
       oBlock.style.top = `${top}px`;
+
+      if (top < 0 && Math.abs(top) >= _maxTop) {
+        top = "$"; // 标记停止移动
+      };
     }
 
     oTop = top;
