@@ -316,28 +316,6 @@ const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
   return _rowCcs;
 }
 
-/**
- * 判断当前元素上方是否有元素
- * @param currentComponent 当前元素
- * @returns Boolean 是否有元素
- */
-const hasPrevComponent = (currentComponent: ComponentItem): boolean => {
-  const _currentComponentCcs = getComponentCcs(currentComponent.ccs); // 当前元素位置
-
-  for (let i = currentComponent.rowIndex - 1; i >= 0; i--) {
-    const _ccs = getComponentCcs(props.activatedComponents[i].ccs)
-    if (_currentComponentCcs[3] > _ccs[1] && _currentComponentCcs[0] === _ccs[2]) {
-
-      return true
-    }
-  }
-
-  if (_currentComponentCcs[1] === _prevComponentCcs[3])
-    return false;
-  else
-    return true;
-}
-
 /** end **/
 
 /**
@@ -504,53 +482,81 @@ const sortComponent = () => {
  */
 const moveTop = (e: MouseEvent, index: number) => {
   e.preventDefault(); // 阻止默认事件
-  const oBlock = blockRefs.value["block" + index], // 获取当前点击微件
-    gridUnit = props.gridScale + props.gridPadding;
+
+  const
+    oBlock = blockRefs.value["block" + index], // 获取当前点击微件
+    _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
+    gridUnit = props.gridScale + props.gridPadding,
+    _maxTop = Math.max(0, _gridArea[0] - 1) * gridUnit; // 最大可移动距离
+
   oBlock.style.borderColor = " red"; // 设置边框颜色为红色
   oBlock.style.zIndex = 999; // 设置z-index为999
 
   let
     disY = e.clientY - 0, // 获取鼠标点击的位置
-    oTop: string | number = 0, // 初始化oTop，用于存储微件的top值
-    _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
-    _maxTop = Math.max(0, _gridArea[0] - 1) * gridUnit;
-  console.log('gridArea', _gridArea);
-  console.log('最大top', _maxTop);
+    oTop: string | number = 0; // 初始化oTop，用于存储微件的top值
 
   // 控制微件高度
   document.onmousemove = (e) => {
-    let top: string | number = e.clientY - disY;
+    e.preventDefault(); // 阻止默认事件
 
-    // 拖动时需判断是否又拉长了高度
-    if (oTop === "$") {
-      if (top < 0 && Math.abs(top) < _maxTop) oTop = top;
+    let
+      top: string | number = e.clientY - disY,
+      // 计算最小高度
+      minHeight = props.activatedComponents[index].minHeight * gridUnit - props.gridPadding;
+
+    // $ 表示已到画布边缘
+    // # 表示已到元素最小值
+    if (oTop === "$" || oTop === "#") {
+      if (
+        (
+          (
+            top < 0
+            &&
+            Math.abs(top) < _maxTop
+          )
+          ||
+          (
+            top >= 0
+            &&
+            // 计算最小高度到元素高度的距离，移动距离小于该距离也需移动
+            top <= (_gridArea[2] - _gridArea[0]) * gridUnit - props.gridPadding - minHeight
+          )
+        )
+      ) {
+        if (oTop === "$")
+          oTop = top - 1;
+        else if (oTop === "#")
+          oTop = top + 1;
+      }
       else return
     }
     else oTop = Number(oTop);
 
     // 计算每个格子的宽度
     const
-      // 计算最小高度
-      minHeight = props.activatedComponents[index].minHeight * gridUnit - props.gridPadding,
       // 0为起始点，top增大，高度变小，反之亦然
-      newHeight = oBlock.offsetHeight + (oTop - top);
+      newHeight = oBlock.offsetHeight + (oTop - top),
+      _maxHeight = (getComponentCcs(oBlock.style.gridArea)[2] - 1) * gridUnit - props.gridPadding;
 
     if (oTop < top) {
-      if (newHeight > minHeight) {
-        oBlock.style.height = `${newHeight}px`;
+      if (newHeight <= minHeight) {
+        top = "#"; // 标记停止移动
+        oBlock.style.height = `${minHeight}px`;
         oBlock.style.top = `${top}px`;
       } else {
-        oBlock.style.height = `${minHeight}px`;
-        top = "$"; // 标记停止移动
+        oBlock.style.height = `${newHeight}px`;
+        oBlock.style.top = `${top}px`;
       }
     } else {
-
-      oBlock.style.height = `${newHeight}px`;
-      oBlock.style.top = `${top}px`;
-
-      if (top < 0 && Math.abs(top) >= _maxTop) {
+      if (newHeight >= _maxHeight) {
         top = "$"; // 标记停止移动
-      };
+        oBlock.style.height = `${_maxHeight}px`;
+        oBlock.style.top = `${top}px`;
+      } else {
+        oBlock.style.height = `${newHeight}px`;
+        oBlock.style.top = `${top}px`;
+      }
     }
 
     oTop = top;
@@ -565,6 +571,7 @@ const moveTop = (e: MouseEvent, index: number) => {
         (props.gridScale + props.gridPadding)
       );
 
+    // 改变元素高度，越小越高
     _gridArea[0] = _gridArea[0] - (_height - (_gridArea[2] - _gridArea[0]));
     //console.log(_gridArea);
 
@@ -585,52 +592,88 @@ const moveTop = (e: MouseEvent, index: number) => {
 
 // 微件向右移动
 const moveRight = (e: MouseEvent, index: number) => {
-  const oBlock = blockRefs.value["block" + index]; //获取当前点击微件
-  const oCcs = getComponentCcs(props.activatedComponents[index].ccs); //获取当前点击微件的ccs
-  let _transDistance = 0; // 元素扩大距离
-  let disX = e.clientX - 0;
-  let oLeft: string | number = 0;
+  e.preventDefault(); // 阻止默认事件
+
+  const
+    oBlock = blockRefs.value["block" + index], //获取当前点击微件
+    oCcs = getComponentCcs(props.activatedComponents[index].ccs), //获取当前点击微件的ccs
+    gridUnit = props.gridScale + props.gridPadding,
+    _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
+    _maxRight = Math.max(0, props.gridColumn - _gridArea[3] + 1) * gridUnit;
+
+  let
+    _transDistance = 0, // 元素扩大距离
+    disX = e.clientX - 0, // 鼠标点击位置
+    oRight: string | number = 0; // 上一次移动距离
 
   oBlock.style.borderColor = " red";
   oBlock.style.zIndex = 999;
 
   // 控制微件宽度
   document.onmousemove = (e) => {
-    if (oLeft === "$") return
-    else oLeft = Number(oLeft);
+    e.preventDefault(); // 阻止默认事件
 
-    let left: string | number = e.clientX - disX;
+    let
+      right: string | number = e.clientX - disX,
+      _rminWidth = props.activatedComponents[index].minWidth * gridUnit - props.gridPadding;
 
-    const _cWidth = oBlock.offsetWidth + (left - oLeft);
+    // $ 表示已到画布边缘
+    // # 表示已到元素最小值
+    if (oRight === "$" || oRight === "#") {
+      if (
+        (
+          right >= 0
+          &&
+          Math.abs(right) < _maxRight
+        )
+        ||
+        (
+          right < 0
+          &&
+          right <= (_gridArea[3] - _gridArea[1]) * gridUnit - props.gridPadding - _rminWidth
+        )
+      ) {
+        if (oRight === "$")
+          oRight = right + 1;
+        else if (oRight === "#")
+          oRight = right - 1;
+      }
+      else return
+    }
+    else oRight = Number(oRight);
 
-    if (oLeft < left) {
-      oBlock.style.width = _cWidth + "px";
+    const
+      _cWidth = oBlock.offsetWidth + (right - oRight),
+      _maxWidth = (props.gridColumn - getComponentCcs(oBlock.style.gridArea)[1] + 1) * gridUnit - props.gridPadding;
+
+    if (oRight < right) {
+      if (_cWidth > _maxWidth) {
+        // 元素宽度超过最大宽度，标记为$
+        right = '$';
+        oBlock.style.width = _maxWidth + "px";
+      } else {
+        oBlock.style.width = _cWidth + "px";
+      }
     } else {
-      let _rminWidth =
-        props.activatedComponents[index].minWidth *
-        (props.gridScale + props.gridPadding) -
-        props.gridPadding;
       if (_cWidth <= _rminWidth) {
+        // 元素宽度小于最小宽度，标记为#
+        right = '#';
         oBlock.style.width = _rminWidth + "px";
-      } else if (_cWidth >= props.gridColumn * (props.gridScale + props.gridPadding)
-        - props.gridPadding) {
-        // 元素宽度超过最大宽度
-        oBlock.style.width = props.gridColumn * (props.gridScale + props.gridPadding)
-          - props.gridPadding + "px";
       } else {
         oBlock.style.width = _cWidth + "px";
       }
     }
 
-    oLeft = left;
+    oRight = right;
   };
 
   // 松开后对微件后的元素进行处理
   document.onmouseup = () => {
-    const _width = Math.ceil(
-      oBlock.offsetWidth / (props.gridScale + props.gridPadding)
-    );
-    const _gridArea = getComponentCcs(oBlock.style.gridArea);
+    const
+      _width = Math.ceil(
+        oBlock.offsetWidth / (props.gridScale + props.gridPadding)
+      ),
+      _gridArea = getComponentCcs(oBlock.style.gridArea);
 
     // 超过边界，固定为最大宽度
     _gridArea[3] =
@@ -657,13 +700,19 @@ const moveRight = (e: MouseEvent, index: number) => {
     _transDistance = _gridArea[3] - (oCcs[3] - oCcs[1]) - 1 - (_gridArea[1] - 1);
 
     for (let i = _currentIndex + 1; i < props.activatedComponents.length; i++) {
+      console.log('当前元素', props.activatedComponents[i]);
       // 当前元素后的ccs
       let _ccs = getComponentCcs(props.activatedComponents[i].ccs);
       let _prevCcs = getComponentCcs(props.activatedComponents[i - 1].ccs)
       console.log('当前元素', _ccs);
       console.log('上一个元素', _prevCcs);
 
+      // 若当前元素行起点大于拖动元素行终点，跳出循环
+      if (_ccs[0] >= oCcs[2]) break
+
       // 若当前元素行起点小于拖动元素行终点，且列终点大于等于拖动元素原始列终点，则为同一行元素
+      // 此逻辑用于计算当前行内元素的整体宽度
+      // 判断变形元素是否与当前元素有接触
       if (_componentCcs[2] > _ccs[0] && oCcs[3] <= _ccs[1]) {
         if (_ccs[0] < _prevCcs[2]) { // 当前元素行起点小于上一个元素行终点
           if (_componentCcs[1] !== _prevCcs[1] && _prevCcs[3] === _ccs[1]) // 上一个元素列终点等于当前元素列起点
@@ -674,15 +723,20 @@ const moveRight = (e: MouseEvent, index: number) => {
           else if (_prevCcs[3] > _ccs[1]) { // 上一个元素列终点大于当前元素列起点
             if (_componentCcs[1] !== _prevCcs[1] && _prevCcs[3] < _ccs[3]) // 上一个元素列终点大于当前元素列终点
               _lastWidth += _ccs[3] - _prevCcs[3]; // 累计宽度等于当前元素列终点减去上一个元素列终点
-            if (_componentCcs[1] === _prevCcs[1] && _prevCcs[3] < _ccs[3])
+            else if (
+              _componentCcs[1] === _prevCcs[1] && _prevCcs[3] < _ccs[3]
+              ||
+              _componentCcs[1] === _prevCcs[1] && _prevCcs[3] >= _ccs[3]
+            )
               _lastWidth += props.activatedComponents[i].width
           }
           console.log('_lastWidth', _lastWidth);
         } else { // 当前元素行起点大于上一个元素行终点
           _lastWidth = _componentCcs[3] - 1; // 折行，重置累计宽度
 
-          if (_componentCcs[3] - _transDistance === _ccs[1])
-            _lastWidth += props.activatedComponents[i].width;
+          if (_componentCcs[3] > _ccs[1])
+            // 需要加上与变形元素之间的间隔距离，才是整体宽度
+            _lastWidth += props.activatedComponents[i].width + ((_ccs[1] + _transDistance) - _componentCcs[3]);
           console.log('_extraWidth', _lastWidth);
         }
 
@@ -737,35 +791,42 @@ const moveRight = (e: MouseEvent, index: number) => {
 // 微件向下移动
 const moveDown = (e: MouseEvent, index: number) => {
   const oBlock = blockRefs.value["block" + index]; //获取当前点击微件
-  let disY = e.clientY - 0;
-  let oTop = 0;
+  let
+    disY = e.clientY - 0, // 鼠标点击位置
+    oDown = 0; // 上一次移动距离
 
   oBlock.style.borderColor = " red";
   oBlock.style.zIndex = 999;
 
   document.onmousemove = (e) => {
-    let top = e.clientY - disY;
-    if (oTop < top) {
-      oBlock.style.height = oBlock.offsetHeight - (oTop - top) + "px";
+    let down = e.clientY - disY; // 移动距离
+
+    if (oDown < down) {
+      oBlock.style.height = oBlock.offsetHeight - (oDown - down) + "px";
     } else {
-      let _rminHeight =
-        props.activatedComponents[index].minHeight *
-        (props.gridScale + props.gridPadding) -
-        props.gridPadding;
-      let _cHeight = oBlock.offsetHeight + (top - oTop);
+      let
+        _minHeight =
+          props.activatedComponents[index].minHeight *
+          (props.gridScale + props.gridPadding) -
+          props.gridPadding,
+        _cHeight = oBlock.offsetHeight + (down - oDown);
+
       oBlock.style.height =
-        _cHeight < _rminHeight ? _rminHeight : _cHeight + "px";
+        _cHeight < _minHeight ? _minHeight : _cHeight + "px";
     }
 
-    oTop = top;
+    oDown = down;
   };
+
   document.onmouseup = () => {
-    let _height = Math.ceil(
-      oBlock.offsetHeight / (props.gridScale + props.gridPadding)
-    );
-    let _gridArea = oBlock.style.gridArea
-      .split("/")
-      .map((item) => Number(item));
+    let
+      _height = Math.ceil(
+        oBlock.offsetHeight / (props.gridScale + props.gridPadding)
+      ),
+      _gridArea = oBlock.style.gridArea
+        .split("/")
+        .map((item) => Number(item));
+
     _gridArea[2] =
       _gridArea[0] + _height < props.gridRow + 1
         ? _gridArea[0] + _height
