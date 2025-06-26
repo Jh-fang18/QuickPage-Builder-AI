@@ -184,6 +184,26 @@ const updateRowIndex = () => {
 }
 
 /** 
+ * 微件排序
+ */
+const sortComponent = () => {
+  props.activatedComponents.sort((x, y) => {
+    let _xCcs = x.ccs.split("/").map((item) => Number(item));
+    let _yCcs = y.ccs.split("/").map((item) => Number(item));
+
+    if (_xCcs[0] < _yCcs[0]) {
+      return -1;
+    } else if (_xCcs[0] > _yCcs[0]) {
+      return 1;
+    } else {
+      if (_xCcs[1] < _yCcs[1]) return -1;
+      else return 1;
+    }
+  });
+}
+
+
+/** 
  * 当前元素位置信息转换成Number数组
  * @param ccs 元素位置String类型，如：1/1/3/3
  * @returns 元素位置Number数组
@@ -456,25 +476,6 @@ const focusComponent = (key: string) => {
 }
 
 /** 
- * 微件排序
- */
-const sortComponent = () => {
-  props.activatedComponents.sort((x, y) => {
-    let _xCcs = x.ccs.split("/").map((item) => Number(item));
-    let _yCcs = y.ccs.split("/").map((item) => Number(item));
-
-    if (_xCcs[0] < _yCcs[0]) {
-      return -1;
-    } else if (_xCcs[0] > _yCcs[0]) {
-      return 1;
-    } else {
-      if (_xCcs[1] < _yCcs[1]) return -1;
-      else return 1;
-    }
-  });
-}
-
-/** 
  * 微件向上扩大
  * @description 鼠标点击微件顶部，拖动鼠标可使微件高度增加,但位置信息仍有grid控制
  * @param e 鼠标事件
@@ -485,9 +486,9 @@ const moveTop = (e: MouseEvent, index: number) => {
 
   const
     oBlock = blockRefs.value["block" + index], // 获取当前点击微件
-    _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
     gridUnit = props.gridScale + props.gridPadding,
-    _maxTop = Math.max(0, _gridArea[0] - 1) * gridUnit; // 最大可移动距离
+    _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
+    _maxTop = Math.max(0, _gridArea[0] - 1) * gridUnit; // 最大可移动距离, 无需减去props.gridPadding
 
   oBlock.style.borderColor = " red"; // 设置边框颜色为红色
   oBlock.style.zIndex = 999; // 设置z-index为999
@@ -537,22 +538,22 @@ const moveTop = (e: MouseEvent, index: number) => {
     const
       // 0为起始点，top增大，高度变小，反之亦然
       newHeight = oBlock.offsetHeight + (oTop - top),
-      _maxHeight = (getComponentCcs(oBlock.style.gridArea)[2] - 1) * gridUnit - props.gridPadding;
+      maxHeight = (_gridArea[2] - 1) * gridUnit - props.gridPadding;
 
     if (oTop < top) {
       if (newHeight <= minHeight) {
-        top = "#"; // 标记停止移动
         oBlock.style.height = `${minHeight}px`;
-        oBlock.style.top = `${top}px`;
+        oBlock.style.top = `${(_gridArea[2] - _gridArea[0]) * gridUnit - props.gridPadding - minHeight}px`;
+        top = "#"; // 标记停止移动
       } else {
         oBlock.style.height = `${newHeight}px`;
         oBlock.style.top = `${top}px`;
       }
     } else {
-      if (newHeight >= _maxHeight) {
+      if (newHeight >= maxHeight) {
+        oBlock.style.height = `${maxHeight}px`;
+        oBlock.style.top = `${-_maxTop}px`;
         top = "$"; // 标记停止移动
-        oBlock.style.height = `${_maxHeight}px`;
-        oBlock.style.top = `${top}px`;
       } else {
         oBlock.style.height = `${newHeight}px`;
         oBlock.style.top = `${top}px`;
@@ -599,7 +600,7 @@ const moveRight = (e: MouseEvent, index: number) => {
     oCcs = getComponentCcs(props.activatedComponents[index].ccs), //获取当前点击微件的ccs
     gridUnit = props.gridScale + props.gridPadding,
     _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
-    _maxRight = Math.max(0, props.gridColumn - _gridArea[3] + 1) * gridUnit;
+    _maxRight = Math.max(0, props.gridColumn - _gridArea[3] + 1) * gridUnit; // 无需减去props.gridPadding
 
   let
     _transDistance = 0, // 元素扩大距离
@@ -630,7 +631,7 @@ const moveRight = (e: MouseEvent, index: number) => {
         (
           right < 0
           &&
-          right <= (_gridArea[3] - _gridArea[1]) * gridUnit - props.gridPadding - _rminWidth
+          right >= _rminWidth - (_gridArea[3] - _gridArea[1]) * gridUnit + props.gridPadding
         )
       ) {
         if (oRight === "$")
@@ -644,21 +645,21 @@ const moveRight = (e: MouseEvent, index: number) => {
 
     const
       _cWidth = oBlock.offsetWidth + (right - oRight),
-      _maxWidth = (props.gridColumn - getComponentCcs(oBlock.style.gridArea)[1] + 1) * gridUnit - props.gridPadding;
+      _maxWidth = (props.gridColumn - _gridArea[1] + 1) * gridUnit - props.gridPadding;
 
     if (oRight < right) {
-      if (_cWidth > _maxWidth) {
+      if (_cWidth >= _maxWidth) {
         // 元素宽度超过最大宽度，标记为$
-        right = '$';
         oBlock.style.width = _maxWidth + "px";
+        right = '$';
       } else {
         oBlock.style.width = _cWidth + "px";
       }
     } else {
       if (_cWidth <= _rminWidth) {
         // 元素宽度小于最小宽度，标记为#
-        right = '#';
         oBlock.style.width = _rminWidth + "px";
+        right = '#';
       } else {
         oBlock.style.width = _cWidth + "px";
       }
@@ -790,29 +791,75 @@ const moveRight = (e: MouseEvent, index: number) => {
 
 // 微件向下移动
 const moveDown = (e: MouseEvent, index: number) => {
-  const oBlock = blockRefs.value["block" + index]; //获取当前点击微件
-  let
-    disY = e.clientY - 0, // 鼠标点击位置
-    oDown = 0; // 上一次移动距离
+  e.preventDefault(); // 阻止默认事件
+
+  const oBlock = blockRefs.value["block" + index], //获取当前点击微件
+    gridUnit = props.gridScale + props.gridPadding,
+    _gridArea = getComponentCcs(oBlock.style.gridArea), // 获取当前微件的gridArea值
+    _maxDown = (props.gridRow - _gridArea[2] + 1) * gridUnit; // 最大可移动距离, 无需减去props.gridPadding
 
   oBlock.style.borderColor = " red";
   oBlock.style.zIndex = 999;
 
+  let
+    disY = e.clientY - 0, // 鼠标点击位置
+    oDown: string | number = 0; // 初始化oDown，用于存储微件的down值
+
   document.onmousemove = (e) => {
-    let down = e.clientY - disY; // 移动距离
+    e.preventDefault(); // 阻止默认事件
+
+    let
+      down: string | number = e.clientY - disY, // 移动距离
+      minHeight = props.activatedComponents[index].minHeight * gridUnit - props.gridPadding;
+
+    // $ 表示已到画布边缘
+    // # 表示已到元素最小值
+    if (oDown === "$" || oDown === "#") {
+      if (
+        (
+          (
+            down > 0
+            &&
+            Math.abs(down) < _maxDown
+          )
+          ||
+          (
+            down <= 0
+            &&
+            // 计算最小高度到元素高度的距离，移动距离小于该距离也需移动
+            down >= minHeight - (_gridArea[2] - _gridArea[0]) * gridUnit + props.gridPadding
+          )
+        )
+      ) {
+        if (oDown === "$")
+          oDown = down - 1;
+        else if (oDown === "#")
+          oDown = down + 1;
+      }
+      else return
+    }
+    else oDown = Number(oDown);
+
+    // 计算每个格子的宽度
+    const
+      // 0为起始点，top增大，高度变大，反之亦然
+      newHeight = oBlock.offsetHeight - (oDown - down),
+      maxHeight = (props.gridRow - _gridArea[0] + 1) * gridUnit - props.gridPadding;
 
     if (oDown < down) {
-      oBlock.style.height = oBlock.offsetHeight - (oDown - down) + "px";
+      if (newHeight < maxHeight) {
+        oBlock.style.height = `${newHeight}px`;
+      } else {
+        oBlock.style.height = `${maxHeight}px`;
+        down = "#"; // 标记停止移动
+      }
     } else {
-      let
-        _minHeight =
-          props.activatedComponents[index].minHeight *
-          (props.gridScale + props.gridPadding) -
-          props.gridPadding,
-        _cHeight = oBlock.offsetHeight + (down - oDown);
-
-      oBlock.style.height =
-        _cHeight < _minHeight ? _minHeight : _cHeight + "px";
+      if (newHeight > minHeight) {
+        oBlock.style.height = `${newHeight}px`;
+      } else {
+        oBlock.style.height = `${minHeight}px`;
+        down = "$"; // 标记停止移动
+      }
     }
 
     oDown = down;
