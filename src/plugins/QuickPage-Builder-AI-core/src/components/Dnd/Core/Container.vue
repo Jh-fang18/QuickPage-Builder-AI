@@ -41,7 +41,7 @@
 // ======================
 // 注意事项
 // ======================
-// grid长宽定义起始点为开始点，结束点为最后一格的下一个故需要+1
+// grid长宽定义起始点为开始点，结束点为最后一格的下一格
 
 
 // 导入已有微件
@@ -212,126 +212,36 @@ const getComponentCcs = (ccs: string) => {
   return ccs.split("/").map((item) => Number(item));
 }
 
-/**
- * 根据元素获取当前同行元素总宽度，并返回Boolean，表示添加该元素后是否需要折行
- * @param currentComponent 当前元素
- * @returns Boolean 是否需要折行
- */
-const getRowWidth = (currentComponent: ComponentItem): boolean => {
-  let _rowWidth = 0; // 当前行宽度
-
-  // 根据输入元素获取当前行宽度
-  for (let i = currentComponent.rowIndex; i > 0; i--) {
-    const _ccs = getComponentCcs(props.activatedComponents[i].ccs) // 当前元素位置
-    const _pCcs =
-      i !== 0
-        ? getComponentCcs(props.activatedComponents[i - 1].ccs)
-        : [0, 0, 0, 0]; // 上一个元素位置
-
-    _rowWidth += props.activatedComponents[i].width
-    if (_ccs[0] !== _pCcs[0]) break;
-  }
-
-
-  if (_rowWidth > props.gridColumn)
-    return true;
-  else
-    return false;
-}
-
 /** 
- * 根据当前元素获取上一行第一个元素
- * @param currentComponent 当前元素
- * @returns 上一行第一个元素
-*/
-const getPrevRowFirstComponent = (currentComponent: ComponentItem): ComponentItem => {
-  // 上一行元素
-  let _prevRowComponent: ComponentItem = props.activatedComponents[currentComponent.rowIndex];
-
-  // 上一行第一个元素
-  let _prevRowFirstComponent: ComponentItem = props.activatedComponents[currentComponent.rowIndex];
-
-  console.log("被查询元素", currentComponent);
-
-  // 若行宽已超过最大宽度，则最后一个元素判断为折行，故上一行元素即为最后一个元素前一个元素
-  if (getRowWidth(currentComponent)) {
-    _prevRowComponent = props.activatedComponents[currentComponent.rowIndex - 1];
-  } else {
-    for (let i = currentComponent.rowIndex; i > 0; i--) {
-      const _ccs = getComponentCcs(props.activatedComponents[i].ccs) // 当前元素位置
-      const _pCcs =
-        i !== 0
-          ? getComponentCcs(props.activatedComponents[i - 1].ccs)
-          : [0, 0, 0, 0]; // 上一个元素位置
-
-      if (_ccs[0] !== _pCcs[0]) {
-        _prevRowComponent = props.activatedComponents[i - 1];
-        break
-      }
-    }
-  }
-
-  console.log("上一行元素", _prevRowComponent);
-
-  for (let i = _prevRowComponent.rowIndex; i > 0; i--) {
-    const _ccs = getComponentCcs(props.activatedComponents[i].ccs) // 当前元素位置
-    const _pCcs =
-      i !== 0
-        ? getComponentCcs(props.activatedComponents[i - 1].ccs)  // 上一个元素位置
-        : [0, 0, 0, 0];
-    if (_ccs[0] !== _pCcs[0]) {
-      _prevRowFirstComponent = props.activatedComponents[i];
-      break
-    }
-  }
-
-  console.log("上一行第一元素", _prevRowFirstComponent);
-
-  return _prevRowFirstComponent;
-}
-
-/** 
- * 获取当前元素所在行元素最大长度
- * @param currentComponent 当前元素
- * @returns 当前行内元素最大长度
+ * 获取折行元素的同行元素中元素的最大长度
+ * 不包括折行元素
+ * 当前元素为行末元素
+ * @param currentComponent 折行元素
+ * @returns 行内元素最大长度，_rowCcs = [0, 0, 0, 0]
  */
 const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
-  const _currentComponentCcs = getComponentCcs(currentComponent.ccs); // 当前元素位置
-  let _rowCcs = [0, 0, 0, 0]; // 本一行元素最大长度， 初始值
-  let _fristRowIndex = currentComponent.rowIndex; // 当前元素rowIndex
+  let
+    _rowCcs = [0, 0, 0, 0]; // 本一行元素最大长度， 初始值
 
-  console.log("输入元素rowIndex", currentComponent.rowIndex);
+  console.log("折行元素", currentComponent);
 
-  // 获取当前元素所在行的第一个元素的rowIndex
-  // 若当前元素为第一行第一个元素，则无需执行此操作
-  if (_currentComponentCcs[1] !== 1) {
-    for (let i = currentComponent.rowIndex; i > 0; i--) {
-      const _ccs = getComponentCcs(props.activatedComponents[i].ccs) // 当前元素位置
-      if (_ccs[1] === 1) {
-        _fristRowIndex = i;
-        break;
-      }
-    }
-  }
+  for (let i = currentComponent.rowIndex - 1; i >= 0; i--) {
+    const
+      _ccs = getComponentCcs(props.activatedComponents[i].ccs), // 当前元素位置
+      _prevCcs =
+        i > 0 ? getComponentCcs(props.activatedComponents[i - 1].ccs) : [0, 0, 0, 0]; // 上一个元素
 
-  console.log("输入元素所在行的第一个元素的rowIndex", _fristRowIndex);
-
-  // 获取元素所在行最大长度
-  // 拖动大小时，行内最后元素可能已成下行元素，故需排除
-  for (let i = _fristRowIndex; i < props.activatedComponents.length - 1; i++) {
-    const _ccs = getComponentCcs(props.activatedComponents[i].ccs) // 当前元素位置
-    const _pCcs =
-      i !== 0
-        ? getComponentCcs(props.activatedComponents[i + 1].ccs)
-        : [0, 0, 0, 0]; // 下一个元素位置
-
-    // 折行元素不参与比较
-    if (_rowCcs[2] < _ccs[2] && !getRowWidth(props.activatedComponents[i])) {
+    if (_rowCcs[2] < _ccs[2]) {
       _rowCcs = _ccs
     };
 
-    if (_ccs[0] !== _pCcs[0]) break
+    // 当前元素结束行小于最大元素起始行，且当前元素起始列大于等于最大元素结束列，则判断为已到行头元素
+    if (_ccs[2] <= _rowCcs[0] && _ccs[0] >= _prevCcs[2]) break
+
+    console.log("行内最大元素", props.activatedComponents[i]);
   }
+
+  console.log("行内最大元素", _rowCcs);
 
   return _rowCcs;
 }
@@ -347,27 +257,29 @@ const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
  */
 const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, extraComponents: ComponentItem[]) => {
   // 复制对象，防止引用类型数据的修改导致原数据的变化
-  let _lastComponents: ComponentItem[] = JSON.parse(JSON.stringify(lastComponents));
-  let _extraComponents: ComponentItem[] = JSON.parse(JSON.stringify(extraComponents));
-  let _transDistance = transDistance;
+  let
+    _lastComponents: ComponentItem[] = JSON.parse(JSON.stringify(lastComponents)),
+    _extraComponents: ComponentItem[] = JSON.parse(JSON.stringify(extraComponents)),
+    _transDistance = transDistance;
 
   //console.log("_lastComponents", _lastComponents);
   //console.log("_extraComponents", _extraComponents);
 
-  // 按activatedComponents内索引更新rowIndex，效率有待提升
-  updateRowIndex();
-
   // 判断是否有元素平移
   console.log("---------last----------");
   if (_lastComponents.length > 0) {
-    // 起始行
-    let _rowStart: number = 0;
-    // 起始列
-    let _columnStart: number = 0;
+    let
+      // 起始行
+      _rowStart: number = 0,
+      // 起始列
+      _columnStart: number = 0;
 
     _lastComponents.map((item) => {
-      const _componentCcs = getComponentCcs(props.activatedComponents[item.rowIndex].ccs)
+      const
+        _componentCcs = getComponentCcs(props.activatedComponents[item.rowIndex].ccs);
+
       _rowStart = _componentCcs[0]
+
       // 起始列等于未平移距离加上该元素起始列
       _columnStart = _componentCcs[1] + _transDistance;
 
@@ -380,6 +292,7 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
         (_rowStart + item.height) +
         "/" +
         (_columnStart + item.width);
+
     });
 
     // 平移完成故清空，避免重复平移，递归调用
@@ -390,17 +303,21 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
   console.log("---------extra----------");
   if (_extraComponents.length > 0) {
     // 获取需下移元素中的第一个元素，此时元素还未折行，数据仍是原数据
-    const _fristComponent = _extraComponents[0];
-    let _fristCcs = getComponentCcs(_fristComponent.ccs);
+    const
+      _fristComponent = _extraComponents[_extraComponents.length - 1];
+
+    let
+      _fristCcs = getComponentCcs(_fristComponent.ccs);
 
     // 第一元素列起点为1，无需下移，后续也不用处理，直接返回
     if (_fristCcs[1] === 1) return
 
     // 获取对应第一元素的上一个元素
-    const _prevComponent = props.activatedComponents[
-      _fristComponent.rowIndex - 1
-    ];
-    const _prevCcs = getComponentCcs(_prevComponent.ccs);
+    const
+      _prevComponent = props.activatedComponents[
+        _fristComponent.rowIndex - 1
+      ],
+      _prevCcs = getComponentCcs(_prevComponent.ccs);
 
     // 若第一个元素已超出Grid高度则直接删除, 并返回
     if (_prevCcs[2] + _fristComponent.height > props.gridRow + 1) {
@@ -411,14 +328,17 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
       return;
     }
 
-    // 获取上一行最大长度的元素，判断该元素后是否有空间折行，为折行后的起始点，需通过上一行元素计算
-    // 注意：因为位置还未改变，上一行元素包括已折行元素，故需要从上一行元素中清除
-    const _prevRowBestCcs = getRowMaxHeight(getPrevRowFirstComponent(_fristComponent));
+    // 获取元素未这行前所在行元素中的元素最大长度
+    // 注意：因为位置还未改变，行元素包括已折行元素，故需要从行元素中清除
+    const
+      _rowBestCcs = getRowMaxHeight(_fristComponent);
 
-    let _rowStart = _prevRowBestCcs[2];
-    let _columnStart = 1;
-    console.log('最大长度', _prevRowBestCcs);
-    console.log('第一元素', _fristCcs);
+    let
+      _rowStart = _rowBestCcs[2],
+      _columnStart = 1;
+
+    console.log('折行元素', _fristCcs);
+    console.log('_fristComponent.rowIndex', _fristComponent.rowIndex);
 
     // 设置第一个元素位置
     props.activatedComponents[_fristComponent.rowIndex].ccs =
@@ -434,7 +354,12 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
 
     // 循环下移元素
     for (let i = _fristComponent.rowIndex + 1; i < props.activatedComponents.length; i++) {
-      const _componentCcs = getComponentCcs(props.activatedComponents[i].ccs);
+      const
+        _componentCcs = getComponentCcs(props.activatedComponents[i].ccs);
+
+      if (_rowBestCcs[2] > _componentCcs[0]) continue
+
+      console.log('下移元素', props.activatedComponents[i])
 
       props.activatedComponents[i].ccs =
         _componentCcs[0] + _fristComponent.height +
@@ -447,14 +372,33 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
     }
 
     // 位置已移动，故从原需下移列表中清除
-    _extraComponents.splice(0, 1);
-
-    // 判断是否还有需平移和下移元素
-    if (_extraComponents.length === 0) return;
-
-    judgeLocation(_lastComponents, _transDistance, _extraComponents);
+    _extraComponents.pop();
   }
+
   console.log("---------end----------");
+
+  // 按activatedComponents内索引更新rowIndex，效率有待提升
+  sortComponent();
+  updateRowIndex();
+
+  // console.log(props.activatedComponents);
+
+  // 判断是否还有需平移和下移元素
+  if (_lastComponents.length === 0 && _extraComponents.length === 0) return;
+  else {
+    // 因位置改变，_extraComponents中元素的rowindex需要重新计算
+    for (let i = 0; i < props.activatedComponents.length; i++) {
+      const
+        item = props.activatedComponents[i];
+
+      if (item.key === _extraComponents[0].key) {
+        _extraComponents[0].rowIndex = item.rowIndex;
+        break
+      }
+    }
+  }
+
+  judgeLocation(_lastComponents, _transDistance, _extraComponents);
   // console.log('_lastComponents', _lastComponents);
   // console.log('_extraComponents', _extraComponents);
 }
@@ -693,18 +637,22 @@ const moveRight = (e: MouseEvent, index: number) => {
 
     const _componentCcs =
       getComponentCcs(props.activatedComponents[index].ccs) // 已经被变形
-    let _lastComponents = []; // 需平移的元素
-    let _extraComponents = []; // 需下移的元素
-    let _lastWidth = _componentCcs[3] - 1; // ccs格式为1/1/3/3 故需-1
-    let _currentIndex = index;
+
+    let
+      _lastComponents = [], // 需平移的元素
+      _extraComponents = [], // 需下移的元素
+      _lastWidth = _componentCcs[3] - 1,// ccs格式为1/1/3/3 故需-1
+      _currentIndex = index;
     //需要减去变型元素前离开画布边缘的距离
     _transDistance = _gridArea[3] - (oCcs[3] - oCcs[1]) - 1 - (_gridArea[1] - 1);
 
     for (let i = _currentIndex + 1; i < props.activatedComponents.length; i++) {
-      console.log('当前元素', props.activatedComponents[i]);
       // 当前元素后的ccs
-      let _ccs = getComponentCcs(props.activatedComponents[i].ccs);
-      let _prevCcs = getComponentCcs(props.activatedComponents[i - 1].ccs)
+      let
+        _ccs = getComponentCcs(props.activatedComponents[i].ccs),
+        _prevCcs = getComponentCcs(props.activatedComponents[i - 1].ccs);
+
+      console.log('当前元素', props.activatedComponents[i]);
       console.log('当前元素', _ccs);
       console.log('上一个元素', _prevCcs);
 
@@ -729,7 +677,9 @@ const moveRight = (e: MouseEvent, index: number) => {
               ||
               _componentCcs[1] === _prevCcs[1] && _prevCcs[3] >= _ccs[3]
             )
-              _lastWidth += props.activatedComponents[i].width
+              _lastWidth += props.activatedComponents[i].width + (_ccs[1] - oCcs[3])
+
+            console.log('_ccs[1] - oCcs[3]', _ccs[1] - oCcs[3]);
           }
           console.log('_lastWidth', _lastWidth);
         } else { // 当前元素行起点大于上一个元素行终点
@@ -737,7 +687,9 @@ const moveRight = (e: MouseEvent, index: number) => {
 
           if (_componentCcs[3] > _ccs[1])
             // 需要加上与变形元素之间的间隔距离，才是整体宽度
-            _lastWidth += props.activatedComponents[i].width + ((_ccs[1] + _transDistance) - _componentCcs[3]);
+            _lastWidth += props.activatedComponents[i].width + (_ccs[1] - oCcs[3]);
+
+          console.log('_ccs[1] - oCcs[3]', _ccs[1] - oCcs[3]);
           console.log('_extraWidth', _lastWidth);
         }
 
@@ -763,11 +715,15 @@ const moveRight = (e: MouseEvent, index: number) => {
     // 调整平移距离，减去元素左侧与变形元素的距离，平移后因与变形元素接触
     if (_lastComponents.length > 0) {
       // 需使用未变型前的行头元素ccs
-      let stance = getComponentCcs(_lastComponents[0].ccs)[1] - oCcs[3];
+      let
+        stance = getComponentCcs(_lastComponents[0].ccs)[1] - oCcs[3];
 
       for (let i = 1; i < _lastComponents.length; i++) {
-        const _ccs = getComponentCcs(_lastComponents[i].ccs);
-        let _stance = _ccs[1] - oCcs[3]
+        const
+          _ccs = getComponentCcs(_lastComponents[i].ccs);
+
+        let
+          _stance = _ccs[1] - oCcs[3]
         if (_stance < stance) {
           stance = _stance;
         };
@@ -870,56 +826,38 @@ const moveDown = (e: MouseEvent, index: number) => {
       _height = Math.ceil(
         oBlock.offsetHeight / (props.gridScale + props.gridPadding)
       ),
-      _gridArea = oBlock.style.gridArea
-        .split("/")
-        .map((item) => Number(item));
+      _gridArea = getComponentCcs(oBlock.style.gridArea);
 
     _gridArea[2] =
       _gridArea[0] + _height < props.gridRow + 1
         ? _gridArea[0] + _height
         : props.gridRow + 1;
-    oBlock.style.gridArea = _gridArea.join("/");
-    oBlock.style.height = "100%"; //必须设回百分比，不然grid-area无法奇效
-    props.activatedComponents[index].ccs = oBlock.style.gridArea;
+
+    // 浏览器补丁 必须设回百分比，不然grid-area无法生效
+    oBlock.style.height = "100%";
+
+    props.activatedComponents[index].ccs = _gridArea.join("/");
     props.activatedComponents[index].height = _height;
 
-    let _componentCcs = props.activatedComponents[index].ccs
-      .split("/")
-      .map((item) => Number(item));
-    let _extraComponents = [];
-    let _rowCcs = [0, 0, 0, 0];
+    //======== 处理当前元素后的元素 ========//
+
+    let
+      _componentCcs = getComponentCcs(props.activatedComponents[index].ccs),
+      _extraComponents = [],
+      _rowCcs = [0, 0, 0, 0];
 
     //获取当前行元素最大长度(向下)
-    for (let i = index + 1; i < props.activatedComponents.length; i++) {
-      let _ccs = props.activatedComponents[i].ccs
-        .split("/")
-        .map((item) => Number(item));
-      if (_componentCcs[0] === _ccs[0] && _componentCcs[2] < _ccs[2]) {
-        _rowCcs = _ccs;
-      } else break;
-    }
-    //获取当前行元素最大长度(向上)
-    for (let i = index - 1; i >= 0; i--) {
-      let _ccs = props.activatedComponents[i].ccs
-        .split("/")
-        .map((item) => Number(item));
-      if (_componentCcs[0] === _ccs[0] && _componentCcs[2] < _ccs[2]) {
-        _rowCcs = _ccs;
-      } else break;
-    }
-
-    if (_rowCcs[2] === 0) _rowCcs = _componentCcs;
+    _rowCcs = getRowMaxHeight(props.activatedComponents[index]);
 
     for (let i = index; i < props.activatedComponents.length; i++) {
-      let _ccs = props.activatedComponents[i].ccs
-        .split("/")
-        .map((item) => Number(item));
-      let _prevCcs =
-        i !== 0
-          ? props.activatedComponents[i - 1].ccs
-            .split("/")
-            .map((item) => Number(item))
-          : [0, 0, 0, 0];
+      let
+        _ccs = getComponentCcs(props.activatedComponents[i].ccs),
+        _prevCcs =
+          i !== 0
+            ? props.activatedComponents[i - 1].ccs
+              .split("/")
+              .map((item) => Number(item))
+            : [0, 0, 0, 0];
 
       //console.log('_ccs', props.activatedComponents[i]);
 
@@ -969,16 +907,20 @@ const moveDown = (e: MouseEvent, index: number) => {
 }
 
 // 微件向左移动
-const moveLeft = (e, index) => {
-  let oBlock = blockRefs.value["block" + index]; //获取当前点击微件
-  //let gDiv = oBlock.parentElement; //获取点击元素的父级元素
-  let disX = e.clientX - 0;
-  let oLeft = 0;
+const moveLeft = (e: MouseEvent, index: number) => {
+  e.preventDefault(); // 阻止默认事件
+
+  let
+    oBlock = blockRefs.value["block" + index], //获取当前点击微件
+    disX = e.clientX - 0,
+    oLeft = 0;
 
   oBlock.style.borderColor = "red";
   oBlock.style.zIndex = 999;
 
   document.onmousemove = (e) => {
+    e.preventDefault(); // 阻止默认事件
+
     if (oLeft === "$") return;
     let left = e.clientX - disX;
     if (oLeft < left) {
@@ -1155,6 +1097,8 @@ const getPosition = (e, gDiv) => {
 
 // 鼠标按下
 const mousedown = (e, component, index) => {
+  e.preventDefault(); // 阻止默认事件，防止浏览器拖动元素
+
   let oDiv = e.target; //获取点击的目标元素
 
   if (
