@@ -231,12 +231,13 @@ const getRowMaxHeight = (currentComponent: ComponentItem): number[] => {
       _prevCcs =
         i > 0 ? getComponentCcs(props.activatedComponents[i - 1].ccs) : [0, 0, 0, 0]; // 上一个元素
 
+    // 当前元素结束行小于最大元素起始行
+    // 注: 最大元素是动态的, 故需要同时判断，当前元素起始行是否大于上一个元素的结束行
+    if (_ccs[2] <= _rowCcs[0] && _ccs[0] >= _prevCcs[2]) break
+
     if (_rowCcs[2] < _ccs[2]) {
       _rowCcs = _ccs
     };
-
-    // 当前元素结束行小于最大元素起始行，且当前元素起始列大于等于最大元素结束列，则判断为已到行头元素
-    if (_ccs[2] <= _rowCcs[0] && _ccs[0] >= _prevCcs[2]) break
 
     console.log("行内最大元素", props.activatedComponents[i]);
   }
@@ -304,10 +305,10 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
   if (_extraComponents.length > 0) {
     // 获取需下移元素中的第一个元素，此时元素还未折行，数据仍是原数据
     const
-      _fristComponent = _extraComponents[_extraComponents.length - 1];
+      _endComponent = _extraComponents[_extraComponents.length - 1];
 
     let
-      _fristCcs = getComponentCcs(_fristComponent.ccs);
+      _fristCcs = getComponentCcs(_endComponent.ccs);
 
     // 第一元素列起点为1，无需下移，后续也不用处理，直接返回
     if (_fristCcs[1] === 1) return
@@ -315,14 +316,14 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
     // 获取对应第一元素的上一个元素
     const
       _prevComponent = props.activatedComponents[
-        _fristComponent.rowIndex - 1
+        _endComponent.rowIndex - 1
       ],
       _prevCcs = getComponentCcs(_prevComponent.ccs);
 
     // 若第一个元素已超出Grid高度则直接删除, 并返回
-    if (_prevCcs[2] + _fristComponent.height > props.gridRow + 1) {
+    if (_prevCcs[2] + _endComponent.height > props.gridRow + 1) {
       props.activatedComponents.splice(
-        _fristComponent.rowIndex,
+        _endComponent.rowIndex,
         _extraComponents.length
       );
       return;
@@ -331,42 +332,43 @@ const judgeLocation = (lastComponents: ComponentItem[], transDistance: number, e
     // 获取元素未这行前所在行元素中的元素最大长度
     // 注意：因为位置还未改变，行元素包括已折行元素，故需要从行元素中清除
     const
-      _rowBestCcs = getRowMaxHeight(_fristComponent);
+      _rowBestCcs = getRowMaxHeight(_endComponent);
 
     let
       _rowStart = _rowBestCcs[2],
       _columnStart = 1;
 
     console.log('折行元素', _fristCcs);
-    console.log('_fristComponent.rowIndex', _fristComponent.rowIndex);
+    console.log('_endComponent.rowIndex', _endComponent.rowIndex);
 
     // 设置第一个元素位置
-    props.activatedComponents[_fristComponent.rowIndex].ccs =
+    props.activatedComponents[_endComponent.rowIndex].ccs =
       _rowStart +
       "/" +
       _columnStart +
       "/" +
-      (_rowStart + _fristComponent.height) +
+      (_rowStart + _endComponent.height) +
       "/" +
-      (_fristComponent.width + 1 < props.gridColumn + 1
-        ? _columnStart + _fristComponent.width
+      (_endComponent.width + 1 < props.gridColumn + 1
+        ? _columnStart + _endComponent.width
         : props.gridColumn + 1);
 
-    // 循环下移元素
-    for (let i = _fristComponent.rowIndex + 1; i < props.activatedComponents.length; i++) {
+    // 循环下移元素, 折行视作整行折行，故不考虑下方元素的位置
+    for (let i = _endComponent.rowIndex + 1; i < props.activatedComponents.length; i++) {
       const
         _componentCcs = getComponentCcs(props.activatedComponents[i].ccs);
 
+      // 同行元素不下移
       if (_rowBestCcs[2] > _componentCcs[0]) continue
 
       console.log('下移元素', props.activatedComponents[i])
 
       props.activatedComponents[i].ccs =
-        _componentCcs[0] + _fristComponent.height +
+        _componentCcs[0] + _endComponent.height +
         "/" +
         _componentCcs[1] +
         "/" +
-        (_componentCcs[2] + _fristComponent.height) +
+        (_componentCcs[2] + _endComponent.height) +
         "/" +
         _componentCcs[3]
     }
@@ -641,12 +643,12 @@ const moveRight = (e: MouseEvent, index: number) => {
     let
       _lastComponents = [], // 需平移的元素
       _extraComponents = [], // 需下移的元素
-      _lastWidth = _componentCcs[3] - 1,// ccs格式为1/1/3/3 故需-1
-      _currentIndex = index;
+      _lastWidth = _componentCcs[3] - 1;// ccs格式为1/1/3/3 故需-1
+
     //需要减去变型元素前离开画布边缘的距离
     _transDistance = _gridArea[3] - (oCcs[3] - oCcs[1]) - 1 - (_gridArea[1] - 1);
 
-    for (let i = _currentIndex + 1; i < props.activatedComponents.length; i++) {
+    for (let i = index + 1; i < props.activatedComponents.length; i++) {
       // 当前元素后的ccs
       let
         _ccs = getComponentCcs(props.activatedComponents[i].ccs),
@@ -822,10 +824,12 @@ const moveDown = (e: MouseEvent, index: number) => {
   };
 
   document.onmouseup = () => {
-    let
+    const
       _height = Math.ceil(
         oBlock.offsetHeight / (props.gridScale + props.gridPadding)
-      ),
+      );
+
+    let
       _gridArea = getComponentCcs(oBlock.style.gridArea);
 
     _gridArea[2] =
@@ -841,63 +845,44 @@ const moveDown = (e: MouseEvent, index: number) => {
 
     //======== 处理当前元素后的元素 ========//
 
-    let
-      _componentCcs = getComponentCcs(props.activatedComponents[index].ccs),
-      _extraComponents = [],
-      _rowCcs = [0, 0, 0, 0];
+    const
+      // 当前变形元素
+      _componentCcs = getComponentCcs(props.activatedComponents[index].ccs);
 
-    //获取当前行元素最大长度(向下)
-    _rowCcs = getRowMaxHeight(props.activatedComponents[index]);
+    const
+      // 下移变形元素后的元素，执行递归操作，直到没有相邻的元素
+      downMoveComponents = (componentCcs: number[], index: number) => {
+        const
+          // 当前变形元素
+          _ccs = componentCcs;
 
-    for (let i = index; i < props.activatedComponents.length; i++) {
-      let
-        _ccs = getComponentCcs(props.activatedComponents[i].ccs),
-        _prevCcs =
-          i !== 0
-            ? props.activatedComponents[i - 1].ccs
-              .split("/")
-              .map((item) => Number(item))
-            : [0, 0, 0, 0];
+        // 下移元素后的元素查找，并执行下移操作
+        for (let i = index + 1; i < props.activatedComponents.length; i++) {
+          let
+            _lastCcs = getComponentCcs(props.activatedComponents[i].ccs);
 
-      //console.log('_ccs', props.activatedComponents[i]);
+          if (_ccs[2] > _lastCcs[0] && _ccs[1] < _lastCcs[3] && _ccs[3] > _lastCcs[1]) {
 
-      if (_componentCcs[0] !== _ccs[0]) {
-        if (
-          _componentCcs[2] === _rowCcs[2] &&
-          _componentCcs[3] > _ccs[1] &&
-          _componentCcs[1] < _ccs[3]
-        ) {
-          //在拖动项下方的元素都算折行
-          console.log(1, props.activatedComponents[i]);
-          _extraComponents.push({
-            ...props.activatedComponents[i],
-            rowIndex: i,
-          });
-        } else if (
-          _ccs[0] !== _prevCcs[0] &&
-          _ccs[3] > _rowCcs[3] &&
-          _prevCcs[3] + props.activatedComponents[i].width >
-          props.gridColumn + 1
-        ) {
-          //宽度大于拖动元素起始点才算折行项
-          console.log(2, props.activatedComponents[i]);
-          _extraComponents.push({
-            ...props.activatedComponents[i],
-            rowIndex: i,
-          });
-        } else if (_ccs[0] !== _prevCcs[0] && _prevCcs[0] !== _rowCcs[0]) {
-          //第三行开始无条件进入折行数组
-          _extraComponents.push({
-            ...props.activatedComponents[i],
-            rowIndex: i,
-          });
+            console.log("props.activatedComponents[i]", props.activatedComponents[i])
+
+            props.activatedComponents[i].ccs =
+              _ccs[2] +
+              "/" +
+              _lastCcs[1] +
+              "/" +
+              (_ccs[2] + props.activatedComponents[i].height) +
+              "/" +
+              _lastCcs[3]
+
+            _lastCcs = getComponentCcs(props.activatedComponents[i].ccs);
+            downMoveComponents(_lastCcs, i)
+            break
+          }
         }
-        //console.log('_extraComponents', props.activatedComponents[i]);
       }
-    }
 
+    downMoveComponents(_componentCcs, index);
     focusComponent(props.activatedComponents[index].key);
-    judgeLocation([], 0, _extraComponents);
 
     //清空事件
     document.onmousemove = null;
