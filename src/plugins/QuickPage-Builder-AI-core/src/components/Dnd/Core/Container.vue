@@ -422,8 +422,8 @@ const focusComponent = (key: string) => {
 }
 
 /** 
- * 微件向上扩大
- * @description 鼠标点击微件顶部，拖动鼠标可使微件高度增加,但位置信息仍有grid控制
+ * 微件向上扩大，位置信息有grid控制。
+ * @description 鼠标点击微件顶部，拖动鼠标可使微件高度增加
  * @param e 鼠标事件
  * @param index 微件索引
  */
@@ -537,7 +537,12 @@ const moveTop = (e: MouseEvent, index: number) => {
   };
 }
 
-// 微件向右移动
+/** 
+ * 微件向右移动，位置信息有grid控制。
+ * @description 鼠标点击微件右边，拖动鼠标可使微件宽度增加。右边接触其他微件后，接触微件自动移位
+ * @param e 鼠标事件
+ * @param index 微件索引
+ */
 const moveRight = (e: MouseEvent, index: number) => {
   e.preventDefault(); // 阻止默认事件
 
@@ -747,7 +752,12 @@ const moveRight = (e: MouseEvent, index: number) => {
   };
 }
 
-// 微件向下移动
+/** 
+ * 微件向下移动，位置信息有grid控制。
+ * @description 鼠标点击微件下边，拖动鼠标可使微件长度增加。下边接触其他微件后，接触微件自动移位
+ * @param e 鼠标事件
+ * @param index 微件索引
+ */
 const moveDown = (e: MouseEvent, index: number) => {
   e.preventDefault(); // 阻止默认事件
 
@@ -1025,8 +1035,14 @@ const moveLeft = (e: MouseEvent, index: number) => {
   };
 }
 
-// 获取微件位置
-const getPosition = (e, gDiv) => {
+/** 
+ * 获取微件位置
+ * @param e 鼠标事件
+ * @param gDiv 容器
+ */
+const getPosition = (e: MouseEvent, gDiv: HTMLElement) => {
+  e.preventDefault(); // 阻止默认事件
+
   let _positions = "";
   let _y = e.clientY - gDiv.offsetTop - rowDeviationValue.value;
   let _x = e.clientX - gDiv.offsetLeft - columnDeviationValue.value;
@@ -1080,8 +1096,39 @@ const getPosition = (e, gDiv) => {
   return _positions;
 }
 
+/** 
+ * 交换位置
+ * @param blockName dom名称
+ * @param oDiv 容器
+ * @param component 微件
+ */
+const changeBlock = (blockName: string, oDiv: HTMLElement, component: ComponentItem) => {
+  component.positionX = 0;
+  component.positionY = 0;
+  //console.log(blockName);
+  let _cs = blockName
+    .replace("g", "")
+    .split("x")
+    .map((item) => Number(item));
+  //console.log('_cs', _cs);
+  let _row = _cs[0] + component.height;
+  let _column = _cs[1] + component.width;
+  //设置元素大小位置
+  oDiv.style.gridArea =
+    _cs[0] +
+    "/" +
+    _cs[1] +
+    "/" +
+    (_row < props.gridRow + 1 ? _row : props.gridRow + 1) +
+    "/" +
+    (_column < props.gridColumn + 1 ? _column : props.gridColumn + 1);
+
+  component.ccs = oDiv.style.gridArea;
+  //console.log('area', oDiv.style.gridArea);
+}
+
 // 鼠标按下
-const mousedown = (e, component, index) => {
+const mousedown = (e: MouseEvent, component: ComponentItem, index: number) => {
   e.preventDefault(); // 阻止默认事件，防止浏览器拖动元素
 
   let oDiv = e.target; //获取点击的目标元素
@@ -1340,31 +1387,6 @@ const mousedown = (e, component, index) => {
   };
 }
 
-// 交换位置
-const changeBlock = (blockName, oDiv, component) => {
-  component.positionX = 0;
-  component.positionY = 0;
-  //console.log(blockName);
-  let _cs = blockName
-    .replace("g", "")
-    .split("x")
-    .map((item) => Number(item));
-  //console.log('_cs', _cs);
-  let _row = _cs[0] + component.height;
-  let _column = _cs[1] + component.width;
-  //设置元素大小位置
-  oDiv.style.gridArea =
-    _cs[0] +
-    "/" +
-    _cs[1] +
-    "/" +
-    (_row < props.gridRow + 1 ? _row : props.gridRow + 1) +
-    "/" +
-    (_column < props.gridColumn + 1 ? _column : props.gridColumn + 1);
-
-  component.ccs = oDiv.style.gridArea;
-  //console.log('area', oDiv.style.gridArea);
-}
 
 // 确认信息
 const showConfirm = (type, keys, actIndex) => {
